@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace ProofService.interfaces;
+namespace PlaygroundService.Grains;
 
 public abstract class PlaygroundSchema
 {
@@ -14,6 +14,12 @@ public abstract class PlaygroundSchema
         
         [JsonPropertyName("Proto")]
         public string proto { get; set; }
+    }
+    
+    public class PlaygroundContractGenerateResponse
+    {
+        [JsonPropertyName("success")]
+        public bool success { get; set; }
     }
 
 }

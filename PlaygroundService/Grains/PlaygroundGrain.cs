@@ -1,36 +1,38 @@
 using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using ProofService.interfaces;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Orleans;
 
-namespace ProofService.controllers;
+namespace PlaygroundService.Grains;
 
-[Route("playground")]
-[ApiController]
-public class PlaygroundController : ControllerBase
+public class PlaygroundGrain : Grain, IPlaygroundGrain
 {
-    private readonly ILogger<PlaygroundController> _logger;
+    private readonly ILogger<PlaygroundGrain> _logger;
     private readonly ContractSetting _contractSetting;
     
-    public PlaygroundController(ILogger<PlaygroundController> logger, ContractSetting contractSetting)
+    public PlaygroundGrain(
+        IOptions<ContractSetting> contractSetting,
+        ILogger<PlaygroundGrain> logger)
     {
         _logger = logger;
-        _contractSetting = contractSetting;
+        _contractSetting = contractSetting.Value;
     }
-
-    [HttpPost("generate")]
-    public async Task<IActionResult> GenerateContract(PlaygroundSchema.PlaygroundContractGenerateRequest request)
+    
+    public async Task<bool> GenerateContract(string contractClass, string stateClass, string proto)
     {
-        if (!string.IsNullOrEmpty(request.contractClass))
+        if (!string.IsNullOrEmpty(contractClass))
         {
-            System.IO.File.WriteAllText(_contractSetting.ContractClassPath + "Test.cs", request.contractClass);
+            File.WriteAllText(_contractSetting.ContractClassPath + "Test.cs", contractClass);
         }
-        if (!string.IsNullOrEmpty(request.stateClass))
+        if (!string.IsNullOrEmpty(stateClass))
         {
-            System.IO.File.WriteAllText(_contractSetting.StateClassPath + "TestState.cs", request.stateClass);
+            File.WriteAllText(_contractSetting.StateClassPath + "TestState.cs", stateClass);
         }
-        if (!string.IsNullOrEmpty(request.proto))
+        if (!string.IsNullOrEmpty(proto))
         {
-            System.IO.File.WriteAllText(_contractSetting.ProtoPath + "test.proto", request.proto);
+            File.WriteAllText(_contractSetting.ProtoPath + "test.proto", proto);
         }
         
         // Create ProcessStartInfo, and the params of shell
@@ -58,7 +60,8 @@ public class PlaygroundController : ControllerBase
             }
             _logger.LogInformation("---------------Read end------------------");
         }
-        return StatusCode(200, "generate successful");
+
+        return await Task.FromResult(true);
     }
 
 }

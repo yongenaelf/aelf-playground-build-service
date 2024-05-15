@@ -1,4 +1,4 @@
-namespace ProofService.interfaces;
+namespace PlaygroundService.Grains;
 
 public class ContractSetting
 {
