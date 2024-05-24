@@ -20,7 +20,7 @@ namespace PlaygroundService.Controllers
         public async Task<PlaygroundSchema.PlaygroundContractGenerateResponse> GenerateContract(PlaygroundSchema.PlaygroundContractGenerateRequest request)
         {
             var zkProofGrain = _client.GetGrain<IPlaygroundGrain>("userId");
-            var res = await zkProofGrain.GenerateContract(request.contractClass, request.stateClass, request.proto);
+            var res = await zkProofGrain.GenerateContract(request.ProjectName, request.contractClass, request.contractClassName, request.stateClass, request.stateClassName, request.proto, request.protoFilename);
 
             return new PlaygroundSchema.PlaygroundContractGenerateResponse
             {

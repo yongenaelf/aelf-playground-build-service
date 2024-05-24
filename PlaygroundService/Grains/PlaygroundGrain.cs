@@ -20,24 +20,23 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         _contractSetting = contractSetting.Value;
     }
     
-    public async Task<bool> GenerateContract(string contractClass, string stateClass, string proto)
+    public async Task<bool> GenerateContract(string projectName, string contractClass, string contractFileName, string stateClass, string stateFileName, string proto, string protoFileName)
     {
         if (!string.IsNullOrEmpty(contractClass))
         {
-            File.WriteAllText(_contractSetting.ContractClassPath + "Test.cs", contractClass);
+            File.WriteAllText(_contractSetting.ContractClassPath + contractFileName, contractClass);
         }
         if (!string.IsNullOrEmpty(stateClass))
         {
-            File.WriteAllText(_contractSetting.StateClassPath + "TestState.cs", stateClass);
+            File.WriteAllText(_contractSetting.StateClassPath + stateFileName, stateClass);
         }
         if (!string.IsNullOrEmpty(proto))
         {
-            File.WriteAllText(_contractSetting.ProtoPath + "test.proto", proto);
+            File.WriteAllText(_contractSetting.ProtoPath + protoFileName, proto);
         }
-        
+
         // Create ProcessStartInfo, and the params of shell
-        var psi = new ProcessStartInfo("dotnet", "build " + _contractSetting.ContractClassPath + "HelloWorld.csproj") {RedirectStandardOutput = true};
-        // Run psi
+        var psi = new ProcessStartInfo("dotnet", "build " + _contractSetting.ContractClassPath + projectName) {RedirectStandardOutput = true};        // Run psi
         var proc=Process.Start(psi);
         if (proc == null)
         {
@@ -52,7 +51,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
                 {
                     _logger.LogInformation(sr.ReadLine());
                 }
-        
+
                 if (!proc.HasExited)
                 {
                     proc.Kill();
@@ -63,5 +62,4 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
 
         return await Task.FromResult(true);
     }
-
 }
