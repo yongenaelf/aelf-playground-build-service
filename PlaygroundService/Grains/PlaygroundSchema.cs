@@ -32,7 +32,10 @@ public abstract class PlaygroundSchema
     public class PlaygroundContractGenerateResponse
     {
         [JsonPropertyName("success")]
-        public bool success { get; set; }
+        public bool Success { get; set; }
+
+        [JsonPropertyName("message")]
+        public string Message { get; set; }
     }
 
 }

@@ -30,7 +30,7 @@ public class Program
                     .ConfigureEndpoints(siloPort, gatewayPort)
                     .ConfigureServices(services =>
                     {
-                        services.Configure<ContractSetting>(configuration.GetSection("ContractSetting"));
+                        //services.Configure<ContractSetting>(configuration.GetSection("ContractSetting"));
                         services.AddSerializer(serializerBuilder =>
                         {
                             serializerBuilder.AddNewtonsoftJsonSerializer(

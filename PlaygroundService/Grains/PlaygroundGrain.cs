@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -10,42 +11,118 @@ namespace PlaygroundService.Grains;
 public class PlaygroundGrain : Grain, IPlaygroundGrain
 {
     private readonly ILogger<PlaygroundGrain> _logger;
-    
+
     public PlaygroundGrain(
         ILogger<PlaygroundGrain> logger)
     {
         _logger = logger;
     }
-    
-    public async Task<bool> GenerateContract(string directory)
-    {
-        // Create ProcessStartInfo, and the params of shell
-        var psi = new ProcessStartInfo("dotnet", "build " + directory) {RedirectStandardOutput = true};
 
-        // Run psi
-        var proc = Process.Start(psi);
-        if (proc == null)
+    public async Task<(bool, string)> GenerateContract(string directory)
+    {
+        try
         {
-            _logger.LogError("Can not exec.");
-        }
-        else
-        {
-            _logger.LogInformation("-------------Start read standard output--------------");
-            using (var sr = proc.StandardOutput)
+            // Check if directory exists
+            if (!Directory.Exists(directory))
             {
-                while (!sr.EndOfStream)
+                return (false, "Directory does not exist: " + directory);
+            }
+
+            // Get all files in the directory
+            string[] files;
+            try
+            {
+                files = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
+            }
+            catch (Exception e)
+            {
+                return (false, "Error getting files from directory: " + e.Message);
+            }
+
+            // Print all files in the directory
+            foreach (var file in files)
+            {
+                _logger.LogInformation("file name uploaded is: " + file);
+            }
+
+            // Create ProcessStartInfo
+            ProcessStartInfo psi;
+            try
+            {
+                psi = new ProcessStartInfo("dotnet", "build " + directory)
                 {
-                    _logger.LogInformation(sr.ReadLine());
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+            }
+            catch (Exception e)
+            {
+                return (false, "Error creating ProcessStartInfo: " + e.Message);
+            }
+
+            // Run psi
+            Process proc;
+            try
+            {
+                proc = Process.Start(psi);
+                if (proc == null)
+                {
+                    return (false, "Process could not be started.");
                 }
 
-                if (!proc.HasExited)
+                proc.WaitForExit();
+
+                string errorMessage;
+                using (var sr = proc.StandardError)
                 {
-                    proc.Kill();
+                    errorMessage = await sr.ReadToEndAsync();
+                }
+
+                if (string.IsNullOrEmpty(errorMessage))
+                {
+                    using (var sr = proc.StandardOutput)
+                    {
+                        errorMessage = await sr.ReadToEndAsync();
+                    }
+                }
+
+                if (proc.ExitCode != 0)
+                {
+                    _logger.LogError("Error executing process: " + errorMessage);
+                    return (false, "Error executing process: " + errorMessage);
                 }
             }
-            _logger.LogInformation("---------------Read end------------------");
-        }
+            catch (Exception e)
+            {
+                return (false, "Error starting process: " + e.Message);
+            }
 
-        return await Task.FromResult(true);
+            _logger.LogInformation("-------------Start read standard output--------------");
+
+            // Read standard output
+            try
+            {
+                using (var sr = proc.StandardOutput)
+                {
+                    while (!sr.EndOfStream)
+                    {
+                        _logger.LogInformation(sr.ReadLine());
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return (false, "Error reading standard output: " + e.Message);
+            }
+
+            _logger.LogInformation("---------------Read end------------------");
+
+            return (true, "Success");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return (false, e.Message);
+        }
     }
 }
