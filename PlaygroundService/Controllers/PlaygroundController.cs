@@ -23,7 +23,7 @@ namespace PlaygroundService.Controllers
         }
 
         [HttpPost("build")]
-        public async Task<IActionResult> Upload(IFormFile contractFiles)
+        public async Task<IActionResult> Build(IFormFile contractFiles)
         {
             var tempPath = Path.GetTempPath();
             var zipPath = Path.Combine(tempPath, contractFiles.FileName);
