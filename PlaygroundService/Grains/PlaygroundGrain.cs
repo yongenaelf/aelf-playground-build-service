@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Orleans;
 
 namespace PlaygroundService.Grains;
@@ -133,26 +132,6 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             {
                 return (false, "Error starting process: " + e.Message);
             }
-
-            // _logger.LogInformation("-------------Start read standard output--------------");
-            //
-            // // Read standard output
-            // try
-            // {
-            //     using (var sr = proc.StandardOutput)
-            //     {
-            //         while (!sr.EndOfStream)
-            //         {
-            //             _logger.LogInformation(sr.ReadLine());
-            //         }
-            //     }
-            // }
-            // catch (Exception e)
-            // {
-            //     return (false, "Error reading standard output: " + e.Message);
-            // }
-            //
-            // _logger.LogInformation("---------------Read end------------------");
             
             // as the build is successful. lookup for the dll file in the bin folder 
             // dll file will be under one of the subdirectories of the projectDirectory
@@ -169,8 +148,13 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             {
                 return (false, "No .dll file found in the bin directory");
             }
+            
+            //extract the first dll file entry and return it in response
+            var dllFileName = Path.GetFileName(dllFiles[0]);
+            
+            _logger.LogInformation("dll file name is: " + dllFileName);
 
-            return (true, "Success");
+            return (true, dllFiles[0]);
         }
         catch (Exception e)
         {
