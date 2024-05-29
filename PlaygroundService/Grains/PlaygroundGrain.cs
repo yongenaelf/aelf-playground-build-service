@@ -53,6 +53,21 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             var directoryTree = PrintDirectoryTree(directory);
             Console.WriteLine("files in extracted path");
             Console.WriteLine(directoryTree);
+            
+            // before running the process dotnet build check if the directory has a .csproj file and .sln file
+            var csprojFiles = files.Where(file => file.EndsWith(".csproj")).ToList();
+            var slnFiles = files.Where(file => file.EndsWith(".sln")).ToList();
+            
+            if (csprojFiles.Count == 0)
+            {
+                return (false, "No .csproj file found in the directory");
+            }
+            
+            if (slnFiles.Count == 0)
+            {
+                return (false, "No .sln file found in the directory");
+            }
+            
             try
             {
                 psi = new ProcessStartInfo("dotnet", "build " + directory)
