@@ -22,6 +22,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
 
     public async Task<(bool, string)> BuildProject(string directory)
     {
+        string projectDirectory = directory;
         try
         {
             // Check if directory exists
@@ -63,14 +64,29 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
                 return (false, "No .csproj file found in the directory");
             }
             
-            if (slnFiles.Count == 0)
-            {
-                return (false, "No .sln file found in the directory");
-            }
+            // if (slnFiles.Count == 0)
+            // {
+            //     return (false, "No .sln file found in the directory");
+            // }
             
             try
             {
-                psi = new ProcessStartInfo("dotnet", "build " + directory)
+                // Check if directory exists
+                if (!Directory.Exists(directory))
+                {
+                    return (false, "Directory does not exist: " + directory);
+                }
+
+                // Get the first subdirectory
+                var subdirectory = Directory.GetDirectories(directory).FirstOrDefault();
+                if (subdirectory == null)
+                {
+                    return (false, "No subdirectories found in the directory");
+                }
+
+                // Use the subdirectory as the project directory
+                projectDirectory = subdirectory;
+                psi = new ProcessStartInfo("dotnet", "build " + projectDirectory)
                 {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
@@ -118,25 +134,41 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
                 return (false, "Error starting process: " + e.Message);
             }
 
-            _logger.LogInformation("-------------Start read standard output--------------");
-
-            // Read standard output
-            try
+            // _logger.LogInformation("-------------Start read standard output--------------");
+            //
+            // // Read standard output
+            // try
+            // {
+            //     using (var sr = proc.StandardOutput)
+            //     {
+            //         while (!sr.EndOfStream)
+            //         {
+            //             _logger.LogInformation(sr.ReadLine());
+            //         }
+            //     }
+            // }
+            // catch (Exception e)
+            // {
+            //     return (false, "Error reading standard output: " + e.Message);
+            // }
+            //
+            // _logger.LogInformation("---------------Read end------------------");
+            
+            // as the build is successful. lookup for the dll file in the bin folder 
+            // dll file will be under one of the subdirectories of the projectDirectory
+            var binDirectory = Path.Combine(projectDirectory, "bin");
+            var dllFiles = Directory.GetFiles(binDirectory, "*.dll", SearchOption.AllDirectories);
+            
+            //print dll file name
+            foreach (var dllFile in dllFiles)
             {
-                using (var sr = proc.StandardOutput)
-                {
-                    while (!sr.EndOfStream)
-                    {
-                        _logger.LogInformation(sr.ReadLine());
-                    }
-                }
+                _logger.LogInformation("dll file name is: " + dllFile);
             }
-            catch (Exception e)
+            
+            if (dllFiles.Length == 0)
             {
-                return (false, "Error reading standard output: " + e.Message);
+                return (false, "No .dll file found in the bin directory");
             }
-
-            _logger.LogInformation("---------------Read end------------------");
 
             return (true, "Success");
         }
