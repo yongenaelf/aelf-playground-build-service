@@ -41,7 +41,7 @@ namespace PlaygroundService.Controllers
             //Console.WriteLine(directoryTree);
 
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>("userId");
-            var (success, message) = await codeGeneratorGrain.GenerateContract(extractPath);
+            var (success, message) = await codeGeneratorGrain.BuildProject(extractPath);
 
             if (success)
             {

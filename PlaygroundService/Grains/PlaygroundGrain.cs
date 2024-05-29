@@ -20,7 +20,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         _logger = logger;
     }
 
-    public async Task<(bool, string)> GenerateContract(string directory)
+    public async Task<(bool, string)> BuildProject(string directory)
     {
         try
         {
