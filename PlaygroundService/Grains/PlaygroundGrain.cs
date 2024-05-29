@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -47,6 +49,10 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
 
             // Create ProcessStartInfo
             ProcessStartInfo psi;
+
+            var directoryTree = PrintDirectoryTree(directory);
+            Console.WriteLine("files in extracted path");
+            Console.WriteLine(directoryTree);
             try
             {
                 psi = new ProcessStartInfo("dotnet", "build " + directory)
@@ -123,6 +129,37 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         {
             _logger.LogError(e.Message);
             return (false, e.Message);
+        }
+    }
+    
+    private string PrintDirectoryTree(string directoryPath)
+    {
+        var indent = new string(' ', 4);
+        var directoryInfo = new DirectoryInfo(directoryPath);
+        var stringBuilder = new StringBuilder();
+
+        PrintDirectory(directoryInfo, string.Empty, indent, stringBuilder);
+
+        return stringBuilder.ToString();
+    }
+
+    private void PrintDirectory(DirectoryInfo directoryInfo, string prefix, string indent, StringBuilder stringBuilder)
+    {
+        var isLast = directoryInfo.Parent.GetDirectories().Last().Equals(directoryInfo);
+
+        stringBuilder.AppendLine($"{prefix}{(isLast ? "└── " : "├── ")}{directoryInfo.Name}");
+
+        var newPrefix = prefix + (isLast ? "    " : "│   ");
+
+        foreach (var fileInfo in directoryInfo.GetFiles())
+        {
+            isLast = fileInfo.Directory.GetFiles().Last().Equals(fileInfo);
+            stringBuilder.AppendLine($"{newPrefix}{(isLast ? "└── " : "├── ")}{fileInfo.Name}");
+        }
+
+        foreach (var subDirectoryInfo in directoryInfo.GetDirectories())
+        {
+            PrintDirectory(subDirectoryInfo, newPrefix, indent, stringBuilder);
         }
     }
 }

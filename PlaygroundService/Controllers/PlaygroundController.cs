@@ -38,7 +38,7 @@ namespace PlaygroundService.Controllers
             var directoryTree = PrintDirectoryTree(extractPath);
 
             Console.WriteLine("files in extracted path");
-            Console.WriteLine(directoryTree);
+            //Console.WriteLine(directoryTree);
 
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>("userId");
             var (success, message) = await codeGeneratorGrain.GenerateContract(extractPath);
