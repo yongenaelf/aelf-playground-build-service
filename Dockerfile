@@ -1,4 +1,4 @@
-FROM cgr.dev/chainguard/dotnet-sdk:latest
+FROM cgr.dev/chainguard/dotnet-sdk:latest-dev
 
 WORKDIR /app
 COPY out/ /app/
