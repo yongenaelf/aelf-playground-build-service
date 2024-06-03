@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -24,9 +25,25 @@ namespace PlaygroundService.Controllers
         {
             var tempPath = Path.GetTempPath();
             var zipPath = Path.Combine(tempPath, contractFiles.FileName);
+            
+            try
+            {
+                using var archive = ZipFile.OpenRead(zipPath);
+                // If we get here, the file is a valid zip file
+            }
+            catch (InvalidDataException)
+            {
+                // The file is not a valid zip file
+                return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+                {
+                    Success = false,
+                    Message = "The uploaded file is not a valid zip file"
+                });
+            }
 
             await using var zipStream = new FileStream(zipPath, FileMode.Create);
             await contractFiles.CopyToAsync(zipStream);
+            await zipStream.FlushAsync(); // Ensure all data is written to the file
 
             var extractPath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(contractFiles.FileName), Guid.NewGuid().ToString());
 
