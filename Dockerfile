@@ -1,4 +1,4 @@
-FROM cgr.dev/chainguard/aspnet-runtime:latest
+FROM cgr.dev/chainguard/aspnet-runtime:latest-dev
 
 WORKDIR /app
 COPY out/ /app/
