@@ -47,7 +47,26 @@ namespace PlaygroundService.Controllers
             
             var extractPath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(contractFiles.FileName), Guid.NewGuid().ToString());
 
-            System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, extractPath);
+            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Read))
+            {
+                foreach (var entry in archive.Entries)
+                {
+                    var destinationPath = Path.GetFullPath(Path.Combine(extractPath, entry.FullName));
+
+                    // Ensure the destination file path is within the destination directory
+                    if (!destinationPath.StartsWith(extractPath, StringComparison.Ordinal))
+                    {
+                        return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+                        {
+                            Success = false,
+                            Message = $"Invalid entry in the zip file: {entry.FullName}"
+                        });
+                    }
+
+                    // Extract the entry to the destination path
+                    entry.ExtractToFile(destinationPath, overwrite: true);
+                }
+            }
             
             //validate if the extracted path contain .csProj file
             var csprojFiles = Directory.GetFiles(extractPath, "*.csproj", SearchOption.AllDirectories);
