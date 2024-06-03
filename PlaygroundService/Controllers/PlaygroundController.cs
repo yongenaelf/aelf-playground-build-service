@@ -25,6 +25,10 @@ namespace PlaygroundService.Controllers
         {
             var tempPath = Path.GetTempPath();
             var zipPath = Path.Combine(tempPath, contractFiles.FileName);
+
+            await using var zipStream = new FileStream(zipPath, FileMode.Create);
+            await contractFiles.CopyToAsync(zipStream);
+            await zipStream.FlushAsync(); // Ensure all data is written to the file
             
             try
             {
@@ -40,11 +44,7 @@ namespace PlaygroundService.Controllers
                     Message = "The uploaded file is not a valid zip file"
                 });
             }
-
-            await using var zipStream = new FileStream(zipPath, FileMode.Create);
-            await contractFiles.CopyToAsync(zipStream);
-            await zipStream.FlushAsync(); // Ensure all data is written to the file
-
+            
             var extractPath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(contractFiles.FileName), Guid.NewGuid().ToString());
 
             System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, extractPath);
