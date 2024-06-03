@@ -65,19 +65,24 @@ namespace PlaygroundService.Controllers
                 foreach (var entry in archive.Entries)
                 {
                     var destinationPath = Path.GetFullPath(Path.Combine(extractPath, entry.FullName));
-                    
-                    _logger.LogInformation("PlaygroundController - Extracting file from extractPath:" + extractPath + "to destinationPath: "+destinationPath);
 
                     // Ensure the destination file path is within the destination directory
                     if (!destinationPath.StartsWith(extractPath, StringComparison.Ordinal))
                     {
                         _logger.LogError("PlaygroundController - Invalid entry in the zip file: " + entry.FullName);
-                        
+
                         return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
                         {
                             Success = false,
                             Message = $"PlaygroundController - Invalid entry in the zip file: {entry.FullName}"
                         });
+                    }
+
+                    // Create the directory for the file if it does not exist
+                    var destinationDirectory = Path.GetDirectoryName(destinationPath);
+                    if (!Directory.Exists(destinationDirectory))
+                    {
+                        Directory.CreateDirectory(destinationDirectory);
                     }
 
                     // Extract the entry to the destination path
