@@ -86,7 +86,18 @@ namespace PlaygroundService.Controllers
                     }
 
                     // Extract the entry to the destination path
-                    entry.ExtractToFile(destinationPath, overwrite: true);
+                    try
+                    {
+                        entry.ExtractToFile(destinationPath, overwrite: true);
+                    }
+                    catch(UnauthorizedAccessException ex)
+                    {
+                        _logger.LogError("PlaygroundController - build ex1:  "+ex.ToString());
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError("PlaygroundController - build ex: : "+ex.ToString());
+                    }
                 }
             }
             
