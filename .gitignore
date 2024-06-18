@@ -11,3 +11,4 @@ Thumbs.db
 .idea/
 *.sublime-*
 *.txt
+out/
