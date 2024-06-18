@@ -1,4 +1,4 @@
-FROM cgr.dev/chainguard/dotnet-sdk:latest-dev
+FROM mcr.microsoft.com/dotnet/aspnet:7.0
 
 WORKDIR /app
 COPY out/ /app/
