@@ -26,6 +26,11 @@ namespace PlaygroundService.Controllers
         [HttpPost("build")]
         public async Task<IActionResult> Build(IFormFile contractFiles)
         {
+            return await BuildService(contractFiles);
+        }
+
+        public async Task<IActionResult> BuildService(IFormFile contractFiles)
+        {
             _logger.LogInformation("PlaygroundController - Build method started for: "+ contractFiles.FileName);
             
             var tempPath = Path.GetTempPath();
@@ -84,7 +89,6 @@ namespace PlaygroundService.Controllers
                     {
                         Directory.CreateDirectory(destinationDirectory);
                     }
-
                     // Extract the entry to the destination path
                     try
                     {
@@ -122,6 +126,7 @@ namespace PlaygroundService.Controllers
                 _logger.LogInformation("PlaygroundController - BuildProject method returned success: " + message);
                 var pathToDll = message;
                 var fileName = Path.GetFileName(pathToDll);
+                _logger.LogInformation("PlaygroundController - Files return fileName:" + pathToDll + fileName);
                 return PhysicalFile(pathToDll, "application/octet-stream", fileName);
             }
             else
