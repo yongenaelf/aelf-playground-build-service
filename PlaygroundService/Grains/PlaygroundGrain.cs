@@ -136,7 +136,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             // as the build is successful. lookup for the dll file in the bin folder 
             // dll file will be under one of the subdirectories of the projectDirectory
             var binDirectory = Path.Combine(projectDirectory, "bin");
-            var dllFiles = Directory.GetFiles(binDirectory, "*.dll", SearchOption.AllDirectories);
+            var dllFiles = Directory.GetFiles(binDirectory, "*.dll.patched", SearchOption.AllDirectories);
             
             //print dll file name
             foreach (var dllFile in dllFiles)
