@@ -126,7 +126,7 @@ namespace PlaygroundService.Controllers
                 _logger.LogInformation("PlaygroundController - BuildProject method returned success: " + message);
                 var pathToDll = message;
                 var fileName = Path.GetFileName(pathToDll);
-                _logger.LogInformation("PlaygroundController - Files return fileName:" + pathToDll + fileName);
+                _logger.LogInformation("PlaygroundController - Files return fileName:" + pathToDll);
                 return PhysicalFile(pathToDll, "application/octet-stream", fileName);
             }
             else
