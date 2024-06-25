@@ -1,8 +1,6 @@
 using System;
 using System.IO;
 using System.IO.Compression;
-using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +27,19 @@ namespace PlaygroundService.Controllers
         public async Task<IActionResult> Build(IFormFile contractFiles)
         {
             return await BuildService(contractFiles);
+        }
+        
+        public byte[] Read(string path)
+        {
+            try
+            {
+                byte[] code = System.IO.File.ReadAllBytes(path);
+                return code;
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
         }
 
         public async Task<IActionResult> BuildService(IFormFile contractFiles)
@@ -138,14 +149,15 @@ namespace PlaygroundService.Controllers
                         Message = message
                     });
                 }
+                return File(Read(pathToDll), "application/octet-stream");
 
-                var memoryStream = new MemoryStream();
-                using (var stream = new FileStream(pathToDll, FileMode.Open))
-                {
-                    await stream.CopyToAsync(memoryStream);
-                }
-                memoryStream.Position = 0;
-                return File(memoryStream, "application/octet-stream");
+                // var memoryStream = new MemoryStream();
+                // using (var stream = new FileStream(pathToDll, FileMode.Open))
+                // {
+                //     await stream.CopyToAsync(memoryStream);
+                // }
+                // memoryStream.Position = 0;
+                // return File(memoryStream, "application/octet-stream");
                 // return PhysicalFile(pathToDll, "application/octet-stream", fileName);
             }
             else
