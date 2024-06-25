@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -127,7 +129,24 @@ namespace PlaygroundService.Controllers
                 var pathToDll = message;
                 var fileName = Path.GetFileName(pathToDll);
                 _logger.LogInformation("PlaygroundController - Files return fileName:" + pathToDll);
-                return PhysicalFile(pathToDll, "application/octet-stream", fileName);
+                if (!System.IO.File.Exists(pathToDll))
+                {
+                    _logger.LogError("PlaygroundController - BuildProject method returned error: file not exist " + message);
+                    return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+                    {
+                        Success = success,
+                        Message = message
+                    });
+                }
+
+                var memoryStream = new MemoryStream();
+                using (var stream = new FileStream(pathToDll, FileMode.Open))
+                {
+                    await stream.CopyToAsync(memoryStream);
+                }
+                memoryStream.Position = 0;
+                return File(memoryStream, "application/octet-stream");
+                // return PhysicalFile(pathToDll, "application/octet-stream", fileName);
             }
             else
             {
