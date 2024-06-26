@@ -149,7 +149,9 @@ namespace PlaygroundService.Controllers
                         Message = message
                     });
                 }
-                return File(Read(pathToDll), "application/octet-stream");
+
+                return Content(Convert.ToBase64String(Read(pathToDll)));
+                // return File(Read(pathToDll), "application/octet-stream");
 
                 // var memoryStream = new MemoryStream();
                 // using (var stream = new FileStream(pathToDll, FileMode.Open))
