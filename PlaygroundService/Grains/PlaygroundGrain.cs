@@ -24,6 +24,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         string projectDirectory = directory;
         try
         {
+            _logger.LogInformation("PlayGroundGrain BuildProject begin time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             // Check if directory exists
             if (!Directory.Exists(directory))
             {
@@ -44,7 +45,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             // Print all files in the directory
             foreach (var file in files)
             {
-                _logger.LogInformation("file name uploaded is: " + file);
+                _logger.LogInformation("file name uploaded is: " + file + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             }
 
             // Create ProcessStartInfo
@@ -97,6 +98,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             }
 
             // Run psi
+            _logger.LogInformation("PlaygroundGrains BuildProject before dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             Process proc;
             try
             {
@@ -113,6 +115,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
                 {
                     errorMessage = await sr.ReadToEndAsync();
                 }
+                _logger.LogInformation("PlaygroundGrains BuildProject after dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 
                 if (string.IsNullOrEmpty(errorMessage))
                 {
@@ -152,7 +155,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             //extract the first dll file entry and return it in response
             var dllFileName = Path.GetFileName(dllFiles[0]);
             
-            _logger.LogInformation("dll file name is: " + dllFileName);
+            _logger.LogInformation("dll file name is: " + dllFileName + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 
             return (true, dllFiles[0]);
         }
