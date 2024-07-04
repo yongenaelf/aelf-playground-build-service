@@ -19,6 +19,44 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         _logger = logger;
     }
 
+    public async Task <bool> DelData(string zipFile, string dllPath)
+    {
+        // Check if the fild exists
+        try
+        {
+            if (System.IO.File.Exists(zipFile))
+            {
+                // Using the Process class to execute the rm command to delete files
+                ProcessStartInfo startInfo = new ProcessStartInfo("rm", zipFile);
+                Process.Start(startInfo);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogInformation("PlayGroundGrain DelData del zipFile fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
+        }
+        try
+        {
+            // Check if the folder exists
+            if (Directory.Exists(dllPath))
+            {
+                // Recursively delete folders and all their contents
+                Directory.Delete(dllPath, true);
+                return true;
+            }
+            else
+            {
+                _logger.LogInformation("PlayGroundGrain DelData del dllPath fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle possible exceptions, such as insufficient permissions, folders being occupied by other processes, etc
+            _logger.LogInformation("PlayGroundGrain DelData del dllPath fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
+        }
+        return false;
+    }
+
     public async Task<(bool, string)> BuildProject(string directory)
     {
         string projectDirectory = directory;
