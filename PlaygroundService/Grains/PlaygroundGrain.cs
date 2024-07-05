@@ -24,7 +24,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         // Check if the fild exists
         try
         {
-            if (System.IO.File.Exists(zipFile))
+            if (File.Exists(zipFile))
             {
                 // Using the Process class to execute the rm command to delete files
                 ProcessStartInfo startInfo = new ProcessStartInfo("rm", zipFile);

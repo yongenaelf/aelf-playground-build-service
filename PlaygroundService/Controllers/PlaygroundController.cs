@@ -153,7 +153,7 @@ namespace PlaygroundService.Controllers
                 var res = Content(Convert.ToBase64String(Read(pathToDll)));
                 
                 _logger.LogInformation("PlaygroundController - BuildProject method over: " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                var rrr = await codeGeneratorGrain.DelData(zipPath, extractPath);
+                await codeGeneratorGrain.DelData(zipPath, extractPath);
 
                 return res;
                 // return File(Read(pathToDll), "application/octet-stream");
