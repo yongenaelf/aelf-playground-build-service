@@ -33,7 +33,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         }
         catch (Exception ex)
         {
-            _logger.LogInformation("PlayGroundGrain DelData del zipFile fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
+            _logger.LogError("PlayGroundGrain DelData del zipFile fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
         }
         try
         {
@@ -52,7 +52,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         catch (Exception ex)
         {
             // Handle possible exceptions, such as insufficient permissions, folders being occupied by other processes, etc
-            _logger.LogInformation("PlayGroundGrain DelData del dllPath fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
+            _logger.LogError("PlayGroundGrain DelData del dllPath fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
         }
         return false;
     }
