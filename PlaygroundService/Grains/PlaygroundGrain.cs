@@ -1,14 +1,16 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
+using Orleans.Concurrency;
 
 namespace PlaygroundService.Grains;
-
+[Reentrant]
 public class PlaygroundGrain : Grain, IPlaygroundGrain
 {
     private readonly ILogger<PlaygroundGrain> _logger;
@@ -18,7 +20,50 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
     {
         _logger = logger;
     }
+    
+    public async Task <string> GenerateZip(string template, string templateName)
+    {
+        var tempPath = Path.GetTempPath();
+        var templatePath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(template), Guid.NewGuid().ToString());
+        var sourceFolder = templatePath + "/src";
+        var command = "dotnet new --output " + templatePath + " " + template + " -n " + templateName;
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "/bin/bash", // We use bash to execute commands
+            Arguments = $"-c \"{command}\"", // -Option c allows bash to execute a string command
+            UseShellExecute = false,
+            RedirectStandardOutput = true, // If necessary, you can redirect the output to the C # program
+            CreateNoWindow = true // Do not create a new window
+        };
 
+        // Using the Process class to start a process
+        using (var process = new Process { StartInfo = startInfo })
+        {
+            process.Start(); // start process
+            // If necessary,can read the output of the process
+            // string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(); // Waiting for process to exit
+        }
+        
+        ZipFile.CreateFromDirectory(sourceFolder, templatePath + "/src.zip");
+        var zipFile = Convert.ToBase64String(Read(templatePath + "/src.zip"));
+        // DeactivateOnIdle();
+        return zipFile;
+    }
+    
+    public byte[] Read(string path)
+    {
+        try
+        {
+            byte[] code = System.IO.File.ReadAllBytes(path);
+            return code;
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+    }
+    
     public async Task <bool> DelData(string zipFile, string dllPath)
     {
         // Check if the fild exists

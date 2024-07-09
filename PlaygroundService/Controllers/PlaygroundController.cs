@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
@@ -21,6 +22,27 @@ namespace PlaygroundService.Controllers
         {
             _client = client;
             _logger = logger;
+        }
+        
+        [HttpGet("templates")]
+        public async Task<IActionResult> GetTemplateConfig()
+        {
+            _logger.LogInformation("templates  - GetTemplateConfig started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            List<string> myList = new List<string> { "item1", "item2", "item3" };
+
+            return Ok(myList); 
+        }
+        
+        [HttpGet("templateInfo")]
+        public async Task<IActionResult> GetTemplateInfo([FromQuery] string template, [FromQuery] string templateName)
+        {
+            _logger.LogInformation("templates  - GetTemplateInfo started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>("userId");
+            var zipFilePath = await codeGeneratorGrain.GenerateZip(template, templateName);
+            // var res = Content(Convert.ToBase64String(Read(zipFilePath)));
+            return Content(zipFilePath);
+            // var stream = System.IO.File.OpenRead(zipFilePath);
+            // return File(stream, "application/zip", Path.GetFileName(zipFilePath));
         }
 
         [HttpPost("build")]
