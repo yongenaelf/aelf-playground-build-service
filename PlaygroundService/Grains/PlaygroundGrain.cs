@@ -27,28 +27,39 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         var templatePath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(template), Guid.NewGuid().ToString());
         var sourceFolder = templatePath + "/src";
         var command = "dotnet new --output " + templatePath + " " + template + " -n " + templateName;
-        var startInfo = new ProcessStartInfo
+        try
         {
-            FileName = "/bin/bash", // We use bash to execute commands
-            Arguments = $"-c \"{command}\"", // -Option c allows bash to execute a string command
-            UseShellExecute = false,
-            RedirectStandardOutput = true, // If necessary, you can redirect the output to the C # program
-            CreateNoWindow = true // Do not create a new window
-        };
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "/bin/bash", // We use bash to execute commands
+                Arguments = $"-c \"{command}\"", // -Option c allows bash to execute a string command
+                UseShellExecute = false,
+                RedirectStandardOutput = true, // If necessary, you can redirect the output to the C # program
+                CreateNoWindow = true // Do not create a new window
+            };
 
-        // Using the Process class to start a process
-        using (var process = new Process { StartInfo = startInfo })
+            // Using the Process class to start a process
+            using (var process = new Process { StartInfo = startInfo })
+            {
+                process.Start(); // start process
+                // If necessary,can read the output of the process
+                // string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit(); // Waiting for process to exit
+            }
+            _logger.LogInformation("PlayGroundGrain GenerateZip  dotnet new end command: " + command + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+        
+            ZipFile.CreateFromDirectory(sourceFolder, templatePath + "/src.zip");
+            var zipFile = Convert.ToBase64String(Read(templatePath + "/src.zip"));
+            _logger.LogInformation("PlayGroundGrain GenerateZip  zip end templatePath: " + templatePath + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            return zipFile;
+        }
+        catch (Exception ex)
         {
-            process.Start(); // start process
-            // If necessary,can read the output of the process
-            // string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(); // Waiting for process to exit
+            _logger.LogError("PlayGroundGrain GenerateZip exception time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
+            return "";
         }
         
-        ZipFile.CreateFromDirectory(sourceFolder, templatePath + "/src.zip");
-        var zipFile = Convert.ToBase64String(Read(templatePath + "/src.zip"));
         // DeactivateOnIdle();
-        return zipFile;
     }
     
     public byte[] Read(string path)

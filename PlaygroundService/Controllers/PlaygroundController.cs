@@ -39,10 +39,7 @@ namespace PlaygroundService.Controllers
             _logger.LogInformation("templates  - GetTemplateInfo started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>("userId");
             var zipFilePath = await codeGeneratorGrain.GenerateZip(template, templateName);
-            // var res = Content(Convert.ToBase64String(Read(zipFilePath)));
             return Content(zipFilePath);
-            // var stream = System.IO.File.OpenRead(zipFilePath);
-            // return File(stream, "application/zip", Path.GetFileName(zipFilePath));
         }
 
         [HttpPost("build")]
