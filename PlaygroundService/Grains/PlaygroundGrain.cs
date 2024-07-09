@@ -52,6 +52,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             var zipFile = Convert.ToBase64String(Read(templatePath + "/src.zip"));
             _logger.LogInformation("PlayGroundGrain GenerateZip  zip end templatePath: " + templatePath + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             // DeactivateOnIdle();
+            await DelData(templatePath + "/src.zip", templatePath);
             return zipFile;
         }
         catch (Exception ex)
@@ -59,8 +60,6 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             _logger.LogError("PlayGroundGrain GenerateZip exception time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
             return "";
         }
-        
-        // DeactivateOnIdle();
     }
     
     public byte[] Read(string path)
