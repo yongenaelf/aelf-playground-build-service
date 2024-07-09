@@ -51,6 +51,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             ZipFile.CreateFromDirectory(sourceFolder, templatePath + "/src.zip");
             var zipFile = Convert.ToBase64String(Read(templatePath + "/src.zip"));
             _logger.LogInformation("PlayGroundGrain GenerateZip  zip end templatePath: " + templatePath + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            // DeactivateOnIdle();
             return zipFile;
         }
         catch (Exception ex)
@@ -66,7 +67,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
     {
         try
         {
-            byte[] code = System.IO.File.ReadAllBytes(path);
+            byte[] code = File.ReadAllBytes(path);
             return code;
         }
         catch (Exception e)
@@ -75,7 +76,9 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         }
     }
     
-    public async Task <bool> DelData(string zipFile, string dllPath)
+    
+    
+    public async Task <bool> DelData(string zipFile, string extractPath)
     {
         // Check if the fild exists
         try
@@ -94,10 +97,10 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         try
         {
             // Check if the folder exists
-            if (Directory.Exists(dllPath))
+            if (Directory.Exists(extractPath))
             {
                 // Recursively delete folders and all their contents
-                Directory.Delete(dllPath, true);
+                Directory.Delete(extractPath, true);
                 return true;
             }
             else

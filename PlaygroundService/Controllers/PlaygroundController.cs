@@ -67,11 +67,11 @@ namespace PlaygroundService.Controllers
             _logger.LogInformation("PlaygroundController - Build method started for: "+ contractFiles.FileName + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) ;
             
             var tempPath = Path.GetTempPath();
-            var zipPath = Path.Combine(tempPath, contractFiles.FileName);
+            var zipFile = Path.Combine(tempPath, contractFiles.FileName);
             
-            _logger.LogInformation("PlaygroundController - Zip file path: " + zipPath);
+            _logger.LogInformation("PlaygroundController - Zip file path: " + zipFile);
 
-            await using var zipStream = new FileStream(zipPath, FileMode.Create);
+            await using var zipStream = new FileStream(zipFile, FileMode.Create);
             await contractFiles.CopyToAsync(zipStream);
             await zipStream.FlushAsync(); // Ensure all data is written to the file
             
@@ -79,7 +79,7 @@ namespace PlaygroundService.Controllers
             
             try
             {
-                using var archive = ZipFile.OpenRead(zipPath);
+                using var archive = ZipFile.OpenRead(zipFile);
                 // If we get here, the file is a valid zip file
             }
             catch (InvalidDataException)
@@ -172,7 +172,7 @@ namespace PlaygroundService.Controllers
                 var res = Content(Convert.ToBase64String(Read(pathToDll)));
                 
                 _logger.LogInformation("PlaygroundController - BuildProject method over: " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                await codeGeneratorGrain.DelData(zipPath, extractPath);
+                await codeGeneratorGrain.DelData(zipFile, extractPath);
 
                 return res;
                 // return File(Read(pathToDll), "application/octet-stream");
