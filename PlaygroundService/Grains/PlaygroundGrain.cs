@@ -54,8 +54,8 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             }
             _logger.LogInformation("PlayGroundGrain GenerateZip  dotnet new end command: " + command + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         
-            ZipFile.CreateFromDirectory(sourceFolder, templatePath + "/src.zip");
-            var zipFile = Convert.ToBase64String(Read(templatePath + "/src.zip"));
+            ZipFile.CreateFromDirectory(sourceFolder, templatePath + "/code.zip");
+            var zipFile = Convert.ToBase64String(Read(templatePath + "/code.zip"));
             _logger.LogInformation("PlayGroundGrain GenerateZip  zip end templatePath: " + templatePath + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             // DeactivateOnIdle();
             await DelData(templatePath + "/src.zip", templatePath);
