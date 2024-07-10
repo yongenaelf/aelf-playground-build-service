@@ -34,7 +34,7 @@ namespace PlaygroundService.Controllers
             return Ok(templateConf); 
         }
         
-        [HttpGet("templateInfo")]
+        [HttpGet("template")]
         public async Task<IActionResult> GetTemplateInfo([FromQuery] string template, [FromQuery] string projectName)
         {
             _logger.LogInformation("templates  - GetTemplateInfo started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
