@@ -1,14 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
+using Orleans.Concurrency;
 
 namespace PlaygroundService.Grains;
-
 public class PlaygroundGrain : Grain, IPlaygroundGrain
 {
     private readonly ILogger<PlaygroundGrain> _logger;
@@ -17,6 +19,106 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         ILogger<PlaygroundGrain> logger)
     {
         _logger = logger;
+    }
+
+    public async Task<List<string>> GetTemplates()
+    {
+        var templateCon = new List<string> { "aelf", "aelf-lottery", "aelf-nft-sale", "aelf-simple-dao"};
+        return templateCon;
+    }
+    
+    public async Task <string> GenerateTemplate(string template, string templateName)
+    {
+        var tempPath = Path.GetTempPath();
+        var templatePath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(template), Guid.NewGuid().ToString());
+        var sourceFolder = templatePath + "/code";
+        var command = "dotnet new --output " + templatePath + "/code " + template + " -n " + templateName;
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "/bin/bash", // We use bash to execute commands
+                Arguments = $"-c \"{command}\"", // -Option c allows bash to execute a string command
+                UseShellExecute = false,
+                RedirectStandardOutput = true, // If necessary, you can redirect the output to the C # program
+                CreateNoWindow = true // Do not create a new window
+            };
+
+            // Using the Process class to start a process
+            using (var process = new Process { StartInfo = startInfo })
+            {
+                process.Start(); // start process
+                // If necessary,can read the output of the process
+                // string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit(); // Waiting for process to exit
+            }
+            _logger.LogInformation("PlayGroundGrain GenerateZip  dotnet new end command: " + command + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+        
+            ZipFile.CreateFromDirectory(sourceFolder, templatePath + "/code.zip");
+            var zipFile = Convert.ToBase64String(Read(templatePath + "/code.zip"));
+            _logger.LogInformation("PlayGroundGrain GenerateZip  zip end templatePath: " + templatePath + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            // DeactivateOnIdle();
+            await DelData(templatePath + "/src.zip", templatePath);
+            return zipFile;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("PlayGroundGrain GenerateZip exception time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
+            return "";
+        }
+    }
+    
+    public byte[] Read(string path)
+    {
+        try
+        {
+            byte[] code = File.ReadAllBytes(path);
+            return code;
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+    }
+    
+    
+    
+    public async Task <bool> DelData(string zipFile, string extractPath)
+    {
+        // Check if the fild exists
+        try
+        {
+            if (File.Exists(zipFile))
+            {
+                // Using the Process class to execute the rm command to delete files
+                ProcessStartInfo startInfo = new ProcessStartInfo("rm", zipFile);
+                Process.Start(startInfo);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("PlayGroundGrain DelData del zipFile fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
+        }
+        try
+        {
+            // Check if the folder exists
+            if (Directory.Exists(extractPath))
+            {
+                // Recursively delete folders and all their contents
+                Directory.Delete(extractPath, true);
+                return true;
+            }
+            else
+            {
+                _logger.LogInformation("PlayGroundGrain DelData del dllPath fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle possible exceptions, such as insufficient permissions, folders being occupied by other processes, etc
+            _logger.LogError("PlayGroundGrain DelData del dllPath fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
+        }
+        return false;
     }
 
     public async Task<(bool, string)> BuildProject(string directory)
