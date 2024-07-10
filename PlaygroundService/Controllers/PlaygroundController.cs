@@ -28,7 +28,7 @@ namespace PlaygroundService.Controllers
         public async Task<IActionResult> GetTemplates()
         {
             var userId = Guid.NewGuid().ToString();
-            _logger.LogInformation("templates  - GetTemplateConfig started userId: " +userId+ " time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            _logger.LogInformation("templates  - GetTemplates started userId: " +userId+ " time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             var templateConfGrain = _client.GetGrain<IPlaygroundGrain>(userId);
             var templateConf = await templateConfGrain.GetTemplates();
 
