@@ -25,7 +25,7 @@ namespace PlaygroundService.Controllers
         }
         
         [HttpGet("templates")]
-        public async Task<IActionResult> GetTemplateConfig()
+        public async Task<IActionResult> GetTemplates()
         {
             var userId = Guid.NewGuid().ToString();
             _logger.LogInformation("templates  - GetTemplateConfig started userId: " +userId+ " time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
