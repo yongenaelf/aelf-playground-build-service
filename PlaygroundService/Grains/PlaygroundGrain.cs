@@ -10,7 +10,6 @@ using Orleans;
 using Orleans.Concurrency;
 
 namespace PlaygroundService.Grains;
-[Reentrant]
 public class PlaygroundGrain : Grain, IPlaygroundGrain
 {
     private readonly ILogger<PlaygroundGrain> _logger;
@@ -21,12 +20,12 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         _logger = logger;
     }
     
-    public async Task <string> GenerateZip(string template, string templateName)
+    public async Task <string> GenerateTemplate(string template, string templateName)
     {
         var tempPath = Path.GetTempPath();
         var templatePath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(template), Guid.NewGuid().ToString());
-        var sourceFolder = templatePath + "/src";
-        var command = "dotnet new --output " + templatePath + " " + template + " -n " + templateName;
+        var sourceFolder = templatePath + "/code";
+        var command = "dotnet new --output " + templatePath + "/code " + template + " -n " + templateName;
         try
         {
             var startInfo = new ProcessStartInfo

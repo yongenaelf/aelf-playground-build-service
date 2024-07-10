@@ -34,11 +34,11 @@ namespace PlaygroundService.Controllers
         }
         
         [HttpGet("templateInfo")]
-        public async Task<IActionResult> GetTemplateInfo([FromQuery] string template, [FromQuery] string templateName)
+        public async Task<IActionResult> GetTemplateInfo([FromQuery] string template, [FromQuery] string projectName)
         {
             _logger.LogInformation("templates  - GetTemplateInfo started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>("userId");
-            var zipFilePath = await codeGeneratorGrain.GenerateZip(template, templateName);
+            var zipFilePath = await codeGeneratorGrain.GenerateTemplate(template, projectName);
             return Content(zipFilePath);
         }
 
