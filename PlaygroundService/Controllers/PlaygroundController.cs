@@ -27,9 +27,10 @@ namespace PlaygroundService.Controllers
         [HttpGet("templates")]
         public async Task<IActionResult> GetTemplateConfig()
         {
-            _logger.LogInformation("templates  - GetTemplateConfig started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            var userId = Guid.NewGuid().ToString();
+            _logger.LogInformation("templates  - GetTemplateConfig started userId: " +userId+ " time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             var templateConfGrain = _client.GetGrain<IPlaygroundGrain>("userId");
-            var templateConf = await templateConfGrain.GetTemplateConfig();
+            var templateConf = await templateConfGrain.GetTemplates();
 
             return Ok(templateConf); 
         }
@@ -37,8 +38,9 @@ namespace PlaygroundService.Controllers
         [HttpGet("template")]
         public async Task<IActionResult> GetTemplateInfo([FromQuery] string template, [FromQuery] string projectName)
         {
-            _logger.LogInformation("templates  - GetTemplateInfo started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>("userId");
+            var userId = Guid.NewGuid().ToString();
+            _logger.LogInformation("templates  - GetTemplateInfo started userId: " + userId+ " time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(userId);
             var zipFilePath = await codeGeneratorGrain.GenerateTemplate(template, projectName);
             return Content(zipFilePath);
         }

@@ -21,9 +21,9 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         _logger = logger;
     }
 
-    public async Task<List<string>> GetTemplateConfig()
+    public async Task<List<string>> GetTemplates()
     {
-        var templateCon = new List<string> { "item1", "item2", "item3" };
+        var templateCon = new List<string> { "aelf", "aelf-lottery", "aelf-nft-sale", "aelf-simple-dao"};
         return templateCon;
     }
     
