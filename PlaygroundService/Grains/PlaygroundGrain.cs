@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -18,6 +19,12 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         ILogger<PlaygroundGrain> logger)
     {
         _logger = logger;
+    }
+
+    public async Task<List<string>> GetTemplateConfig()
+    {
+        var templateCon = new List<string> { "item1", "item2", "item3" };
+        return templateCon;
     }
     
     public async Task <string> GenerateTemplate(string template, string templateName)

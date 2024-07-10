@@ -28,9 +28,10 @@ namespace PlaygroundService.Controllers
         public async Task<IActionResult> GetTemplateConfig()
         {
             _logger.LogInformation("templates  - GetTemplateConfig started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            List<string> myList = new List<string> { "item1", "item2", "item3" };
+            var templateConfGrain = _client.GetGrain<IPlaygroundGrain>("userId");
+            var templateConf = await templateConfGrain.GetTemplateConfig();
 
-            return Ok(myList); 
+            return Ok(templateConf); 
         }
         
         [HttpGet("templateInfo")]
