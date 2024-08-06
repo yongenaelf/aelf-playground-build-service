@@ -188,8 +188,9 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
 
                 // Use the subdirectory as the project directory
                 projectDirectory = subdirectory;
-                psi = new ProcessStartInfo("dotnet", "build " + projectDirectory)
+                psi = new ProcessStartInfo("dotnet", "build")
                 {
+                    WorkingDirectory = projectDirectory,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 };
