@@ -154,7 +154,8 @@ namespace PlaygroundService.Controllers
                 });
             }
             
-            var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>("userId");
+            var guid = Guid.NewGuid();
+            var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(guid.ToString());
             var (success, message) = await codeGeneratorGrain.BuildProject(extractPath);
 
             if (success)
