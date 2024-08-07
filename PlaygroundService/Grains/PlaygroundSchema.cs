@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace PlaygroundService.Grains;
@@ -11,6 +12,7 @@ public abstract class PlaygroundSchema
 
         [JsonPropertyName("message")]
         public string Message { get; set; }
+        public string[] Data { get; set; }
     }
 
 }

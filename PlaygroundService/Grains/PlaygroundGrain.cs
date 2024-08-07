@@ -268,6 +268,130 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         }
     }
     
+    public async Task<(bool, string, string[])> TestProject(string directory)
+    {
+        string projectDirectory = directory;
+        var res = new string[] { };
+        try
+        {
+            _logger.LogInformation("PlayGroundGrain TestProject begin time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            // Check if directory exists
+            if (!Directory.Exists(directory))
+            {
+                return (false, "Directory does not exist: " + directory, res);
+            }
+
+            // Get all files in the directory
+            string[] files;
+            try
+            {
+                files = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
+            }
+            catch (Exception e)
+            {
+                return (false, "Error getting files from directory: " + e.Message, res);
+            }
+
+            // Print all files in the directory
+            foreach (var file in files)
+            {
+                _logger.LogInformation("PlayGroundGrain TestProject file name uploaded is: " + file + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            }
+
+            // Create ProcessStartInfo
+            ProcessStartInfo psi;
+
+            var directoryTree = PrintDirectoryTree(directory);
+            Console.WriteLine("files in extracted path");
+            Console.WriteLine(directoryTree);
+            
+            // before running the process dotnet build check if the directory has a .csproj file and .sln file
+            var csprojFiles = files.Where(file => file.EndsWith(".csproj")).ToList();
+            var slnFiles = files.Where(file => file.EndsWith(".sln")).ToList();
+            
+            if (csprojFiles.Count == 0)
+            {
+                return (false, "No .csproj file found in the directory", res);
+            }
+            try
+            {
+                // Check if directory exists
+                if (!Directory.Exists(directory))
+                {
+                    return (false, "Directory does not exist: " + directory, res);
+                }
+
+                // Get the first 
+                var subdirectory = directory + "/test";
+                // Use the subdirectory as the project directory
+                projectDirectory = subdirectory;
+                psi = new ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = "test --logger \"console;verbosity=detailed\"",
+                    WorkingDirectory = projectDirectory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                psi.EnvironmentVariables["LANG"] = "en_US.UTF-8";
+                psi.EnvironmentVariables["LC_ALL"] = "en_US.UTF-8";
+            }
+            catch (Exception e)
+            {
+                return (false, "Error creating ProcessStartInfo: " + e.Message, res);
+            }
+
+            // Run psi
+            _logger.LogInformation("PlaygroundGrains TestProject before dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            Process proc;
+            try
+            {
+                proc = Process.Start(psi);
+                if (proc == null)
+                {
+                    return (false, "Process could not be started.", res);
+                }
+                string output = proc.StandardOutput.ReadToEnd();
+                var lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                res = lines;
+                proc.WaitForExit();
+
+                string errorMessage;
+                using (var sr = proc.StandardError)
+                {
+                    errorMessage = await sr.ReadToEndAsync();
+                }
+                _logger.LogInformation("PlaygroundGrains TestProject after dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+                if (string.IsNullOrEmpty(errorMessage))
+                {
+                    using (var sr = proc.StandardOutput)
+                    {
+                        errorMessage = await sr.ReadToEndAsync();
+                    }
+                }
+
+                if (proc.ExitCode != 0)
+                {
+                    _logger.LogError("Error executing process: " + errorMessage);
+                    return (false, "Error executing process: " + errorMessage, res);
+                }
+            }
+            catch (Exception e)
+            {
+                return (false, "Error starting process: " + e.Message, res);
+            }
+            return (true, "", res);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return (false, e.Message, res);
+        }
+    }
+
     private string PrintDirectoryTree(string directoryPath)
     {
         var indent = new string(' ', 4);
