@@ -12,7 +12,6 @@ public abstract class PlaygroundSchema
 
         [JsonPropertyName("message")]
         public string Message { get; set; }
-        public string[] Data { get; set; }
     }
 
 }
