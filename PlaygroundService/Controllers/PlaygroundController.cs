@@ -96,7 +96,7 @@ namespace PlaygroundService.Controllers
                     Message = "PlaygroundController - The uploaded file is not a valid zip file"
                 });
             }
-
+            
             var extractPath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(contractFiles.FileName), Guid.NewGuid().ToString());
 
             _logger.LogInformation("PlaygroundController - ExtractPath or destination directory where files are extracted is: "+extractPath  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
