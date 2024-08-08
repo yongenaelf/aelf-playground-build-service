@@ -97,8 +97,6 @@ namespace PlaygroundService.Controllers
                 });
             }
 
-            var temp = Path.GetFileNameWithoutExtension(contractFiles.FileName);
-            
             var extractPath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(contractFiles.FileName), Guid.NewGuid().ToString());
 
             _logger.LogInformation("PlaygroundController - ExtractPath or destination directory where files are extracted is: "+extractPath  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
