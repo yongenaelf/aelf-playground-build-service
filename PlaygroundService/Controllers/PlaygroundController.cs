@@ -268,11 +268,11 @@ namespace PlaygroundService.Controllers
                     }
                     catch(UnauthorizedAccessException ex)
                     {
-                        _logger.LogError("PlaygroundController TestService - build ex1:  "+ex.ToString()  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                        _logger.LogError("PlaygroundController TestService - build ex1:  "+ex  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError("PlaygroundController TestService - build ex: : "+ex.ToString()  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                        _logger.LogError("PlaygroundController TestService - build ex: : "+ex  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     }
                 }
             }
@@ -290,12 +290,11 @@ namespace PlaygroundService.Controllers
             }
             var guid = Guid.NewGuid();
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(guid.ToString());
-            var (success, message, data) = await codeGeneratorGrain.TestProject(extractPath);
+            var (success, message) = await codeGeneratorGrain.TestProject(extractPath);
             if (success)
             {
                 _logger.LogInformation("PlaygroundController - TestService method returned success: " + message  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                 var pathToDll = message;
-                var fileName = Path.GetFileName(pathToDll);
                 _logger.LogInformation("PlaygroundController TestService - Files return fileName:" + pathToDll);
                 if (!System.IO.File.Exists(pathToDll))
                 {
@@ -304,7 +303,6 @@ namespace PlaygroundService.Controllers
                     {
                         Success = success,
                         Message = message,
-                        Data = data
                     });
                 }
                 var res = Content(Convert.ToBase64String(Read(pathToDll)));

@@ -7,7 +7,7 @@ namespace PlaygroundService.Grains;
 public interface IPlaygroundGrain : IGrainWithStringKey
 {
     public Task<(bool, string)> BuildProject(string directory);
-    public Task<(bool, string, string[] )> TestProject(string directory);
+    public Task<(bool, string)> TestProject(string directory);
     public Task<bool> DelData(string zipFile, string extractPath);
     public Task<string> GenerateTemplate(string template, string templateName);
     public Task<List<string>> GetTemplates();

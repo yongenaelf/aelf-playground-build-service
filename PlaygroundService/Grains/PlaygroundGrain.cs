@@ -268,17 +268,17 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         }
     }
     
-    public async Task<(bool, string, string[])> TestProject(string directory)
+    public async Task<(bool, string)> TestProject(string directory)
     {
         string projectDirectory = directory;
-        var res = new string[] { };
+        var res = "";
         try
         {
             _logger.LogInformation("PlayGroundGrain TestProject begin time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             // Check if directory exists
             if (!Directory.Exists(directory))
             {
-                return (false, "Directory does not exist: " + directory, res);
+                return (false, "Directory does not exist: " + directory);
             }
 
             // Get all files in the directory
@@ -289,7 +289,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             }
             catch (Exception e)
             {
-                return (false, "Error getting files from directory: " + e.Message, res);
+                return (false, "Error getting files from directory: " + e.Message);
             }
 
             // Print all files in the directory
@@ -311,14 +311,14 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             
             if (csprojFiles.Count == 0)
             {
-                return (false, "No .csproj file found in the directory", res);
+                return (false, "No .csproj file found in the directory");
             }
             try
             {
                 // Check if directory exists
                 if (!Directory.Exists(directory))
                 {
-                    return (false, "Directory does not exist: " + directory, res);
+                    return (false, "Directory does not exist: " + directory);
                 }
 
                 // Get the first 
@@ -340,7 +340,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             }
             catch (Exception e)
             {
-                return (false, "Error creating ProcessStartInfo: " + e.Message, res);
+                return (false, "Error creating ProcessStartInfo: " + e.Message);
             }
 
             // Run psi
@@ -351,11 +351,11 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
                 proc = Process.Start(psi);
                 if (proc == null)
                 {
-                    return (false, "Process could not be started.", res);
+                    return (false, "Process could not be started.");
                 }
-                string output = proc.StandardOutput.ReadToEnd();
-                var lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
-                res = lines;
+                res = proc.StandardOutput.ReadToEnd();
+                // var lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                // res = lines;
                 proc.WaitForExit();
 
                 string errorMessage;
@@ -376,19 +376,19 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
                 if (proc.ExitCode != 0)
                 {
                     _logger.LogError("Error executing process: " + errorMessage);
-                    return (false, "Error executing process: " + errorMessage, res);
+                    return (false, "Error executing process: " + errorMessage);
                 }
             }
             catch (Exception e)
             {
-                return (false, "Error starting process: " + e.Message, res);
+                return (false, "Error starting process: " + e.Message);
             }
-            return (true, "", res);
+            return (true, res);
         }
         catch (Exception e)
         {
             _logger.LogError(e.Message);
-            return (false, e.Message, res);
+            return (false, e.Message);
         }
     }
 
