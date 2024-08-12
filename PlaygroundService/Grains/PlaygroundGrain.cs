@@ -178,16 +178,17 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
                 {
                     return (false, "Directory does not exist: " + directory);
                 }
-
-                // Get the first subdirectory
-                var subdirectory = Directory.GetDirectories(directory).FirstOrDefault();
-                if (subdirectory == null)
+                
+                // get extracted path of the first .csproj file
+                var csprojPath = Path.GetDirectoryName(csprojFiles[0]);
+                
+                if (!Directory.Exists(csprojPath))
                 {
-                    return (false, "No subdirectories found in the directory");
+                    return (false, "CS Project Directory does not exist: " + csprojPath);
                 }
 
                 // Use the subdirectory as the project directory
-                projectDirectory = subdirectory;
+                projectDirectory = csprojPath;
                 psi = new ProcessStartInfo("dotnet", "build")
                 {
                     WorkingDirectory = projectDirectory,
