@@ -28,18 +28,18 @@ namespace PlaygroundService.Controllers
         public async Task<IActionResult> GetTemplates()
         {
             var userId = Guid.NewGuid().ToString();
-            _logger.LogInformation("templates  - GetTemplates started userId: " +userId+ " time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            _logger.LogInformation("templates  - GetTemplates started userId: " + userId + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             var templateConfGrain = _client.GetGrain<IPlaygroundGrain>(userId);
             var templateConf = await templateConfGrain.GetTemplates();
 
-            return Ok(templateConf); 
+            return Ok(templateConf);
         }
         
         [HttpGet("template")]
         public async Task<IActionResult> GetTemplateInfo([FromQuery] string template, [FromQuery] string projectName)
         {
             var userId = Guid.NewGuid().ToString();
-            _logger.LogInformation("templates  - GetTemplateInfo started userId: " + userId+ " time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            _logger.LogInformation("templates  - GetTemplateInfo started userId: " + userId + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(userId);
             var zipFilePath = await codeGeneratorGrain.GenerateTemplate(template, projectName);
             return Content(zipFilePath);
@@ -48,10 +48,10 @@ namespace PlaygroundService.Controllers
         [HttpPost("build")]
         public async Task<IActionResult> Build(IFormFile contractFiles)
         {
-            _logger.LogInformation("Build  - Build started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            _logger.LogInformation("Build  - Build started time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             return await BuildService(contractFiles);
         }
-        
+
         public byte[] Read(string path)
         {
             try
@@ -65,21 +65,19 @@ namespace PlaygroundService.Controllers
             }
         }
 
-        public async Task<IActionResult> BuildService(IFormFile contractFiles)
+
+        private async Task<(bool Success, string ExtractPath, string ZipFilePath, string ErrorMessage)> ExtractZipFileAsync(IFormFile contractFiles)
         {
-            _logger.LogInformation("PlaygroundController - Build method started for: "+ contractFiles.FileName + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) ;
-            
             var tempPath = Path.GetTempPath();
             var zipFile = Path.Combine(tempPath, contractFiles.FileName);
-            
             _logger.LogInformation("PlaygroundController - Zip file path: " + zipFile);
 
             await using var zipStream = new FileStream(zipFile, FileMode.Create);
             await contractFiles.CopyToAsync(zipStream);
             await zipStream.FlushAsync(); // Ensure all data is written to the file
-            
-            _logger.LogInformation("PlaygroundController - Zip file saved to disk"  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            
+
+            _logger.LogInformation("PlaygroundController - Zip file saved to disk at: " + zipFile);
+
             try
             {
                 using var archive = ZipFile.OpenRead(zipFile);
@@ -87,63 +85,66 @@ namespace PlaygroundService.Controllers
             }
             catch (InvalidDataException)
             {
-                _logger.LogError("PlaygroundController - The uploaded file is not a valid zip file"  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                
-                // The file is not a valid zip file
-                return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
-                {
-                    Success = false,
-                    Message = "PlaygroundController - The uploaded file is not a valid zip file"
-                });
+                _logger.LogError("PlaygroundController - The uploaded file is not a valid zip file at: " + zipFile);
+                return (false, string.Empty, string.Empty, "The uploaded file is not a valid zip file.");
             }
-            
-            var extractPath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(contractFiles.FileName), Guid.NewGuid().ToString());
 
-            _logger.LogInformation("PlaygroundController - ExtractPath or destination directory where files are extracted is: "+extractPath  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            
+            var extractPath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(contractFiles.FileName), Guid.NewGuid().ToString());
+            _logger.LogInformation("PlaygroundController - ExtractPath or destination directory where files are extracted is: " + extractPath);
+
             using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Read))
             {
                 foreach (var entry in archive.Entries)
                 {
                     var destinationPath = Path.GetFullPath(Path.Combine(extractPath, entry.FullName));
 
-                    // Ensure the destination file path is within the destination directory
                     if (!destinationPath.StartsWith(extractPath, StringComparison.Ordinal))
                     {
-                        _logger.LogError("PlaygroundController - Invalid entry in the zip file: " + entry.FullName  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-
-                        return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
-                        {
-                            Success = false,
-                            Message = $"PlaygroundController - Invalid entry in the zip file: {entry.FullName}"
-                        });
+                        _logger.LogError("PlaygroundController - Invalid entry in the zip file: " + entry.FullName);
+                        return (false, string.Empty, string.Empty, $"Invalid entry in the zip file: {entry.FullName}");
                     }
 
-                    // Create the directory for the file if it does not exist
                     var destinationDirectory = Path.GetDirectoryName(destinationPath);
                     if (!Directory.Exists(destinationDirectory))
                     {
                         Directory.CreateDirectory(destinationDirectory);
                     }
-                    // Extract the entry to the destination path
+
                     try
                     {
                         entry.ExtractToFile(destinationPath, overwrite: true);
                     }
-                    catch(UnauthorizedAccessException ex)
+                    catch (UnauthorizedAccessException ex)
                     {
-                        _logger.LogError("PlaygroundController - build ex1:  "+ex.ToString()  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                        _logger.LogError("PlaygroundController - UnauthorizedAccessException: " + ex);
+                        return (false, string.Empty, string.Empty, $"Unauthorized access: {ex.Message}");
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError("PlaygroundController - build ex: : "+ex.ToString()  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                        _logger.LogError("PlaygroundController - Exception: " + ex);
+                        return (false, string.Empty, string.Empty, $"Error extracting file: {ex.Message}");
                     }
                 }
             }
-            
-            _logger.LogInformation("PlaygroundController - Files extracted to disk"  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            
-            //validate if the extracted path contain .csProj file
+
+            _logger.LogInformation("PlaygroundController - Files extracted to disk at: " + extractPath);
+            return (true, extractPath, zipFile, string.Empty);
+        }
+
+        public async Task<IActionResult> BuildService(IFormFile contractFiles)
+        {
+            _logger.LogInformation("PlaygroundController - Build method started for: " + contractFiles.FileName);
+
+            var (success, extractPath, zipFilePath, errorMessage) = await ExtractZipFileAsync(contractFiles);
+            if (!success)
+            {
+                return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+                {
+                    Success = false,
+                    Message = "PlaygroundController BuildService - " + errorMessage
+                });
+            }
+
             var csprojFiles = Directory.GetFiles(extractPath, "*.csproj", SearchOption.AllDirectories);
             if (csprojFiles.Length == 0)
             {
@@ -153,52 +154,104 @@ namespace PlaygroundService.Controllers
                     Message = "PlaygroundController - No .csproj file found in the uploaded zip file"
                 });
             }
-            
+
             var guid = Guid.NewGuid();
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(guid.ToString());
-            var (success, message) = await codeGeneratorGrain.BuildProject(extractPath);
+            var (buildSuccess, message) = await codeGeneratorGrain.BuildProject(extractPath);
 
-            if (success)
+            if (buildSuccess)
             {
-                _logger.LogInformation("PlaygroundController - BuildProject method returned success: " + message  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                _logger.LogInformation("PlaygroundController - BuildProject method returned success: " + message);
                 var pathToDll = message;
-                var fileName = Path.GetFileName(pathToDll);
-                _logger.LogInformation("PlaygroundController - Files return fileName:" + pathToDll);
+
                 if (!System.IO.File.Exists(pathToDll))
                 {
-                    _logger.LogError("PlaygroundController - BuildProject method returned error: file not exist " + message  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    _logger.LogError("PlaygroundController - BuildProject method returned error: file not exist " + message);
                     return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
                     {
-                        Success = success,
+                        Success = buildSuccess,
                         Message = message
                     });
                 }
+
                 var res = Content(Convert.ToBase64String(Read(pathToDll)));
-                
-                _logger.LogInformation("PlaygroundController - BuildProject method over: " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                await codeGeneratorGrain.DelData(zipFile, extractPath);
+                _logger.LogInformation("PlaygroundController - BuildProject method over");
+                await codeGeneratorGrain.DelData(zipFilePath, extractPath);
 
                 return res;
-                // return File(Read(pathToDll), "application/octet-stream");
-
-                // var memoryStream = new MemoryStream();
-                // using (var stream = new FileStream(pathToDll, FileMode.Open))
-                // {
-                //     await stream.CopyToAsync(memoryStream);
-                // }
-                // memoryStream.Position = 0;
-                // return File(memoryStream, "application/octet-stream");
-                // return PhysicalFile(pathToDll, "application/octet-stream", fileName);
             }
-            else
+
+            _logger.LogError("PlaygroundController - BuildProject method returned error: " + message);
+            return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
             {
-                _logger.LogError("PlaygroundController - BuildProject method returned error: " + message);
+                Success = buildSuccess,
+                Message = message
+            });
+        }
+
+        [HttpPost("build-test")]
+        public async Task<IActionResult> BuildTest(IFormFile contractFiles)
+        {
+            _logger.LogInformation("Build  - Build started time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            return await TestService(contractFiles);
+        }
+
+        public async Task<IActionResult> TestService(IFormFile contractFiles)
+        {
+            _logger.LogInformation("PlaygroundController - Test method started for: " + contractFiles.FileName);
+
+            var (success, extractPath, zipFilePath, errorMessage) = await ExtractZipFileAsync(contractFiles);
+            if (!success)
+            {
                 return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
                 {
-                    Success = success,
-                    Message = message
+                    Success = false,
+                    Message = "PlaygroundController TestService - " + errorMessage
                 });
             }
+
+            var csprojFiles = Directory.GetFiles(extractPath, "*.csproj", SearchOption.AllDirectories);
+            if (csprojFiles.Length == 0)
+            {
+                return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+                {
+                    Success = false,
+                    Message = "PlaygroundController - No .csproj file found in the uploaded zip file"
+                });
+            }
+
+            var guid = Guid.NewGuid();
+            var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(guid.ToString());
+            var (testSuccess, message) = await codeGeneratorGrain.TestProject(extractPath);
+
+            if (testSuccess)
+            {
+                _logger.LogInformation("PlaygroundController - TestService method returned success: " + message);
+                var pathToDll = message;
+
+                if (!System.IO.File.Exists(pathToDll))
+                {
+                    _logger.LogError("PlaygroundController - TestService method returned error: file not exist " + message);
+                    return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+                    {
+                        Success = testSuccess,
+                        Message = message
+                    });
+                }
+
+                var res = Content(Convert.ToBase64String(Read(pathToDll)));
+                _logger.LogInformation("PlaygroundController - TestService method over");
+                await codeGeneratorGrain.DelData(zipFilePath, extractPath);
+
+                return res;
+            }
+
+            _logger.LogError("PlaygroundController - TestService method returned error: " + message);
+            return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+            {
+                Success = testSuccess,
+                Message = message
+            });
         }
     }
 }
