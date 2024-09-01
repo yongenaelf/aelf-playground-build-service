@@ -123,11 +123,9 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             return (false, "The uploaded file does not have a filename.");
         }
         
-        var extractPath = Path.Combine(_workspacePath, Path.GetFileNameWithoutExtension(dto.Filename));
-        
         try
         {
-            zipBytes.ExtractTo(extractPath);
+            zipBytes.ExtractTo(_workspacePath);
         }
         catch (Exception e)
         {
@@ -135,7 +133,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             return (false, "Error extracting zip file.");
         }
         
-        return await Build(extractPath);
+        return await Build(_workspacePath);
     }
 
     private void CreateWorkspaceDirectory()

@@ -41,6 +41,12 @@ public static class BytesExtension
             {
                 throw new FormatException($"Invalid entry in the zip file: {entry.FullName}");
             }
+            
+            // Check if destinationPath is a directory
+            if (string.IsNullOrEmpty(entry.Name))
+            {
+                continue;
+            }
 
             // Create the directory for the file if it does not exist
             var destinationDirectory = Path.GetDirectoryName(destinationPath);
