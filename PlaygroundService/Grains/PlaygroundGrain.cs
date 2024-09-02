@@ -55,7 +55,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         return zip;
     }
 
-    public async Task<(bool, string)> BuildProject(BuildDto dto)
+    public async Task<(bool, string)> BuildProject(ZipFileDto dto)
     {
         var (success, message) = await ExtractThen(dto, async () => await Build(_workspacePath));
         
@@ -64,7 +64,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         return (success, message);
     }
     
-    public async Task<(bool, string)> TestProject(BuildDto dto)
+    public async Task<(bool, string)> TestProject(ZipFileDto dto)
     {
         var (success, message) = await ExtractThen(dto, async () => await Test(_workspacePath));
         
@@ -119,7 +119,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         }
     }
 
-    private async Task<(bool, string)> ExtractThen(BuildDto dto, Func<Task<(bool, string)>> action)
+    private async Task<(bool, string)> ExtractThen(ZipFileDto dto, Func<Task<(bool, string)>> action)
     {
         var zipBytes = dto.ZipFile;
         
@@ -159,111 +159,38 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         try
         {
             _logger.LogInformation("PlayGroundGrain BuildProject begin time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            // Check if directory exists
-            if (!Directory.Exists(directory))
+            // before running the process dotnet build check if the directory has a .csproj file and .sln file
+            List<string> csprojFiles;
+            try 
             {
-                return (false, "Directory does not exist: " + directory);
-            }
-
-            // Get all files in the directory
-            string[] files;
-            try
-            {
-                files = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
+                csprojFiles = GetCsprojFiles(directory);
             }
             catch (Exception e)
             {
-                return (false, "Error getting files from directory: " + e.Message);
-            }
-
-            // Print all files in the directory
-            foreach (var file in files)
-            {
-                _logger.LogInformation("file name uploaded is: " + file + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            }
-
-            // Create ProcessStartInfo
-            ProcessStartInfo psi;
-
-            var directoryTree = PrintDirectoryTree(directory);
-            Console.WriteLine("files in extracted path");
-            Console.WriteLine(directoryTree);
-            
-            // before running the process dotnet build check if the directory has a .csproj file and .sln file
-            var csprojFiles = files.Where(file => file.EndsWith(".csproj")).ToList();
-            
-            if (csprojFiles.Count == 0)
-            {
-                return (false, "No .csproj file found in the directory");
+                return (false, e.Message);
             }
 
             var projectDirectory = "";
             try
             {
-                // Check if directory exists
-                if (!Directory.Exists(directory))
-                {
-                    return (false, "Directory does not exist: " + directory);
-                }
-                
                 // get extracted path of the first .csproj file
                 var csprojPath = Path.GetDirectoryName(csprojFiles[0]);
-                
-                if (!Directory.Exists(csprojPath))
-                {
-                    return (false, "CS Project Directory does not exist: " + csprojPath);
-                }
-
-                // Use the subdirectory as the project directory
                 projectDirectory = csprojPath;
-                psi = new ProcessStartInfo("dotnet", "build")
+                
+                if (!Directory.Exists(projectDirectory))
                 {
-                    WorkingDirectory = projectDirectory,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                };
+                    return (false, "CS Project Directory does not exist: " + projectDirectory);
+                }
+                
+                var (success, message) = await ProcessHelper.RunDotnetCommand(projectDirectory, "build");
+                if (!success)
+                {
+                    return (false, message);
+                }
             }
             catch (Exception e)
             {
                 return (false, "Error creating ProcessStartInfo: " + e.Message);
-            }
-
-            // Run psi
-            _logger.LogInformation("PlaygroundGrains BuildProject before dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            try
-            {
-                var proc = Process.Start(psi);
-                if (proc == null)
-                {
-                    return (false, "Process could not be started.");
-                }
-
-                await proc.WaitForExitAsync();
-
-                string errorMessage;
-                using (var sr = proc.StandardError)
-                {
-                    errorMessage = await sr.ReadToEndAsync();
-                }
-                _logger.LogInformation("PlaygroundGrains BuildProject after dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-
-                if (string.IsNullOrEmpty(errorMessage))
-                {
-                    using (var sr = proc.StandardOutput)
-                    {
-                        errorMessage = await sr.ReadToEndAsync();
-                    }
-                }
-
-                if (proc.ExitCode != 0)
-                {
-                    _logger.LogError("Error executing process: " + errorMessage);
-                    return (false, "Error executing process: " + errorMessage);
-                }
-            }
-            catch (Exception e)
-            {
-                return (false, "Error starting process: " + e.Message);
             }
             
             // as the build is successful. lookup for the dll file in the bin folder 
@@ -298,133 +225,82 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
     
     private async Task<(bool, string)> Test(string directory)
     {
-        try
+        _logger.LogInformation("PlayGroundGrain BuildProject begin time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+        // before running the process dotnet build check if the directory has a .csproj file and .sln file
+        List<string> csprojFiles;
+        try 
         {
-            _logger.LogInformation("PlayGroundGrain BuildProject begin time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            // Check if directory exists
-            if (!Directory.Exists(directory))
-            {
-                return (false, "Directory does not exist: " + directory);
-            }
-
-            // Get all files in the directory
-            string[] files;
-            try
-            {
-                files = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
-            }
-            catch (Exception e)
-            {
-                return (false, "Error getting files from directory: " + e.Message);
-            }
-
-            // Print all files in the directory
-            foreach (var file in files)
-            {
-                _logger.LogInformation("file name uploaded is: " + file + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            }
-
-            // Create ProcessStartInfo
-            ProcessStartInfo psi;
-
-            var directoryTree = PrintDirectoryTree(directory);
-            Console.WriteLine("files in extracted path");
-            Console.WriteLine(directoryTree);
-            
-            // before running the process dotnet build check if the directory has a .csproj file and .sln file
-            var csprojFiles = files.Where(file => file.EndsWith(".csproj")).ToList();
-            
-            if (csprojFiles.Count == 0)
-            {
-                return (false, "No .csproj file found in the directory");
-            }
-
-            var projectDirectory = "";
-            try
-            {
-                var testCsprojFiles = csprojFiles.Where(csprojFile => csprojFile.ToLower().Contains("test")).ToList();
-                if (testCsprojFiles.Count == 0)
-                {
-                    return (false, "No .csproj file found with test in its name for unit testing.");
-                }
-                
-                // get extracted path of the first .csproj file
-                var csprojPath = Path.GetDirectoryName(testCsprojFiles[0]);
-                
-                if (!Directory.Exists(csprojPath))
-                {
-                    return (false, "CS Project Directory does not exist: " + csprojPath);
-                }
-
-                // Use the subdirectory as the project directory
-                projectDirectory = csprojPath;
-                psi = new ProcessStartInfo("dotnet", "test --logger \\\"console;verbosity=detailed\\\"")
-                {
-                    WorkingDirectory = projectDirectory,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    EnvironmentVariables =
-                    {
-                        ["LANG"] = "en_US.UTF-8",
-                        ["LC_ALL"] = "en_US.UTF-8"
-                    }
-                };
-            }
-            catch (Exception e)
-            {
-                return (false, "Error creating ProcessStartInfo: " + e.Message);
-            }
-
-            var ret = "";
-            // Run psi
-            _logger.LogInformation("PlaygroundGrains TestProject before dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            try
-            {
-                var proc = Process.Start(psi);
-                if (proc == null)
-                {
-                    return (false, "Process could not be started.");
-                }
-                
-                using (var sr = proc.StandardOutput)
-                {
-                    ret = await sr.ReadToEndAsync();
-                }
-
-                await proc.WaitForExitAsync();
-
-                string errorMessage;
-                using (var sr = proc.StandardError)
-                {
-                    errorMessage = await sr.ReadToEndAsync();
-                }
-                _logger.LogInformation("PlaygroundGrains BuildProject after dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-
-                using (var sr = proc.StandardOutput)
-                {
-                    ret = await sr.ReadToEndAsync();
-                }
-
-                if (proc.ExitCode != 0)
-                {
-                    _logger.LogError("Error executing process: " + errorMessage);
-                    return (false, "Error executing process: " + errorMessage);
-                }
-            }
-            catch (Exception e)
-            {
-                return (false, "Error starting process: " + e.Message);
-            }
-
-            return (true, ret);
+            csprojFiles = GetCsprojFiles(directory);
         }
         catch (Exception e)
         {
-            _logger.LogError(e.Message);
             return (false, e.Message);
         }
+
+        try
+        {
+            var testCsprojFiles = csprojFiles.Where(csprojFile => csprojFile.ToLower().Contains("test")).ToList();
+            if (testCsprojFiles.Count == 0)
+            {
+                return (false, "No .csproj file found with test in its name for unit testing.");
+            }
+            
+            // get extracted path of the first .csproj file
+            var csprojPath = Path.GetDirectoryName(testCsprojFiles[0]);
+            
+            if (!Directory.Exists(csprojPath))
+            {
+                return (false, "CS Project Directory does not exist: " + csprojPath);
+            }
+            
+            return await ProcessHelper.RunDotnetCommand(csprojPath, "test --logger \\\"console;verbosity=detailed\\\"");
+        }
+        catch (Exception e)
+        {
+            return (false, "Error running dotnet: " + e.Message);
+        }
     }
-    
+
+    private List<string> GetCsprojFiles(string directory)
+    {
+        // Check if directory exists
+        if (!Directory.Exists(directory))
+        {
+            throw new Exception("Directory does not exist: " + directory);
+        }
+
+        // Get all files in the directory
+        string[] files;
+        try
+        {
+            files = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
+        }
+        catch (Exception e)
+        {
+            throw new Exception("Error getting files from directory: " + e.Message);
+        }
+
+        // Print all files in the directory
+        foreach (var file in files)
+        {
+            _logger.LogInformation("file name uploaded is: " + file + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+        }
+
+        var directoryTree = PrintDirectoryTree(directory);
+        Console.WriteLine("files in extracted path");
+        Console.WriteLine(directoryTree);
+        
+        // before running the process dotnet build check if the directory has a .csproj file and .sln file
+        var csprojFiles = files.Where(file => file.EndsWith(".csproj")).ToList();
+        
+        if (csprojFiles.Count == 0)
+        {
+            throw new Exception("No .csproj file found in the directory");
+        }
+        
+        return csprojFiles;
+    }
+
     private string PrintDirectoryTree(string directoryPath)
     {
         var indent = new string(' ', 4);

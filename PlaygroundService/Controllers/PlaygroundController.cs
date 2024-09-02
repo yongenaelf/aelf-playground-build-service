@@ -52,20 +52,16 @@ namespace PlaygroundService.Controllers
             return await BuildService(contractFiles);
         }
 
-        public async Task<IActionResult> BuildService(IFormFile contractFiles)
+        private async Task<IActionResult> BuildService(IFormFile contractFiles)
         {
             _logger.LogInformation("PlaygroundController - Build method started for: "+ contractFiles.FileName + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) ;
             var startTime = DateTime.Now;
             
-            var buildDto = new BuildDto
-            {
-                ZipFile = await contractFiles.ToBytes(),
-                Filename = contractFiles.FileName
-            };
+            var zipFileDto = await GetZipFileDto(contractFiles);
             
             var guid = Guid.NewGuid();
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(guid.ToString());
-            var (success, message) = await codeGeneratorGrain.BuildProject(buildDto);
+            var (success, message) = await codeGeneratorGrain.BuildProject(zipFileDto);
 
             if (success)
             {
@@ -110,7 +106,17 @@ namespace PlaygroundService.Controllers
                 Message = message
             });
         }
-        
+
+        private static async Task<ZipFileDto> GetZipFileDto(IFormFile contractFiles)
+        {
+            var zipFileDto = new ZipFileDto
+            {
+                ZipFile = await contractFiles.ToBytes(),
+                Filename = contractFiles.FileName
+            };
+            return zipFileDto;
+        }
+
         [HttpPost("test")]
         public async Task<IActionResult> Test(IFormFile contractFiles)
         {
@@ -118,58 +124,22 @@ namespace PlaygroundService.Controllers
             return await TestService(contractFiles);
         }
         
-        public async Task<IActionResult> TestService(IFormFile contractFiles)
+        private async Task<IActionResult> TestService(IFormFile contractFiles)
         {
             _logger.LogInformation("PlaygroundController - Test method started for: "+ contractFiles.FileName + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) ;
-            var startTime = DateTime.Now;
             
-            var buildDto = new BuildDto
-            {
-                ZipFile = await contractFiles.ToBytes(),
-                Filename = contractFiles.FileName
-            };
+            var zipFileDto = await GetZipFileDto(contractFiles);
             
             var guid = Guid.NewGuid();
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(guid.ToString());
-            var (success, message) = await codeGeneratorGrain.TestProject(buildDto);
+            var (success, message) = await codeGeneratorGrain.TestProject(zipFileDto);
 
             if (success)
             {
-                _logger.LogInformation("PlaygroundController - BuildProject method returned success: " + message  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                var pathToDll = message;
-                var fileName = Path.GetFileName(pathToDll);
-                _logger.LogInformation("PlaygroundController - Files return fileName:" + pathToDll);
-                if (!System.IO.File.Exists(pathToDll))
-                {
-                    _logger.LogError("PlaygroundController - BuildProject method returned error: file not exist " + message  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
-                    {
-                        Success = success,
-                        Message = message
-                    });
-                }
-
-                var dllBytes = BytesExtension.Read(pathToDll);
-                if (dllBytes == null)
-                {
-                    _logger.LogError("PlaygroundController - BuildProject method returned error: dllBytes is null " + message  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
-                    {
-                        Success = false,
-                        Message = "Error in dll."
-                    });
-                }
-                
-                var res = Content(Convert.ToBase64String(dllBytes));
-                
-                _logger.LogInformation("PlaygroundController - BuildProject method over: " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                var endTime = DateTime.Now;
-                
-                _logger.LogInformation("PlaygroundController - BuildProject method took: " + (endTime - startTime).TotalSeconds + " seconds");
-                return res;
+                return Ok(message);
             }
             
-            _logger.LogError("PlaygroundController - BuildProject method returned error: " + message);
+            _logger.LogError("PlaygroundController - TestProject method returned error: " + message);
             return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
             {
                 Success = success,
