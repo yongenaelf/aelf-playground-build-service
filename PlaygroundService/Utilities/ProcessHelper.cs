@@ -41,16 +41,18 @@ public class ProcessHelper
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
             EnvironmentVariables =
-            {
-                ["LANG"] = "en_US.UTF-8",
-                ["LC_ALL"] = "en_US.UTF-8"
-            }
+        {
+            ["LANG"] = "en_US.UTF-8",
+            ["LC_ALL"] = "en_US.UTF-8"
+        }
         };
 
-        using var process = new Process();
-        
-        process.StartInfo = startInfo;
+        using var process = new Process
+        { StartInfo = startInfo };
+
         process.Start();
         var output = await process.StandardOutput.ReadToEndAsync();
         var error = await process.StandardError.ReadToEndAsync();
@@ -58,11 +60,10 @@ public class ProcessHelper
 
         if (process.ExitCode != 0)
         {
-            if(string.IsNullOrEmpty(error))
-                throw new Exception(output);
             throw new Exception(error);
         }
 
-        return output;
+        return output; 
     }
+
 }
