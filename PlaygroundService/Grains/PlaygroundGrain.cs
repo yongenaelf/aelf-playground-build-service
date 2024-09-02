@@ -57,7 +57,16 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
 
     public async Task<(bool, string)> BuildProject(BuildDto dto)
     {
-        var (success, message) = await Build(dto);
+        var (success, message) = await ExtractThen(dto, async () => await Build(_workspacePath));
+        
+        DeactivateOnIdle();
+        
+        return (success, message);
+    }
+    
+    public async Task<(bool, string)> TestProject(BuildDto dto)
+    {
+        var (success, message) = await ExtractThen(dto, async () => await Test(_workspacePath));
         
         DeactivateOnIdle();
         
@@ -110,7 +119,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         }
     }
 
-    private async Task<(bool, string)> Build(BuildDto dto)
+    private async Task<(bool, string)> ExtractThen(BuildDto dto, Func<Task<(bool, string)>> action)
     {
         var zipBytes = dto.ZipFile;
         
@@ -132,8 +141,8 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             _logger.LogError($"PlaygroundController - Error extracting zip file - {e.Message}"  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             return (false, "Error extracting zip file.");
         }
-        
-        return await Build(_workspacePath);
+
+        return await action();
     }
 
     private void CreateWorkspaceDirectory()
@@ -279,6 +288,135 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             _logger.LogInformation("dll file name is: " + dllFileName + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 
             return (true, dllFiles[0]);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return (false, e.Message);
+        }
+    }
+    
+    private async Task<(bool, string)> Test(string directory)
+    {
+        try
+        {
+            _logger.LogInformation("PlayGroundGrain BuildProject begin time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            // Check if directory exists
+            if (!Directory.Exists(directory))
+            {
+                return (false, "Directory does not exist: " + directory);
+            }
+
+            // Get all files in the directory
+            string[] files;
+            try
+            {
+                files = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
+            }
+            catch (Exception e)
+            {
+                return (false, "Error getting files from directory: " + e.Message);
+            }
+
+            // Print all files in the directory
+            foreach (var file in files)
+            {
+                _logger.LogInformation("file name uploaded is: " + file + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            }
+
+            // Create ProcessStartInfo
+            ProcessStartInfo psi;
+
+            var directoryTree = PrintDirectoryTree(directory);
+            Console.WriteLine("files in extracted path");
+            Console.WriteLine(directoryTree);
+            
+            // before running the process dotnet build check if the directory has a .csproj file and .sln file
+            var csprojFiles = files.Where(file => file.EndsWith(".csproj")).ToList();
+            
+            if (csprojFiles.Count == 0)
+            {
+                return (false, "No .csproj file found in the directory");
+            }
+
+            var projectDirectory = "";
+            try
+            {
+                var testCsprojFiles = csprojFiles.Where(csprojFile => csprojFile.ToLower().Contains("test")).ToList();
+                if (testCsprojFiles.Count == 0)
+                {
+                    return (false, "No .csproj file found with test in its name for unit testing.");
+                }
+                
+                // get extracted path of the first .csproj file
+                var csprojPath = Path.GetDirectoryName(testCsprojFiles[0]);
+                
+                if (!Directory.Exists(csprojPath))
+                {
+                    return (false, "CS Project Directory does not exist: " + csprojPath);
+                }
+
+                // Use the subdirectory as the project directory
+                projectDirectory = csprojPath;
+                psi = new ProcessStartInfo("dotnet", "test --logger \\\"console;verbosity=detailed\\\"")
+                {
+                    WorkingDirectory = projectDirectory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    EnvironmentVariables =
+                    {
+                        ["LANG"] = "en_US.UTF-8",
+                        ["LC_ALL"] = "en_US.UTF-8"
+                    }
+                };
+            }
+            catch (Exception e)
+            {
+                return (false, "Error creating ProcessStartInfo: " + e.Message);
+            }
+
+            var ret = "";
+            // Run psi
+            _logger.LogInformation("PlaygroundGrains TestProject before dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            try
+            {
+                var proc = Process.Start(psi);
+                if (proc == null)
+                {
+                    return (false, "Process could not be started.");
+                }
+                
+                using (var sr = proc.StandardOutput)
+                {
+                    ret = await sr.ReadToEndAsync();
+                }
+
+                await proc.WaitForExitAsync();
+
+                string errorMessage;
+                using (var sr = proc.StandardError)
+                {
+                    errorMessage = await sr.ReadToEndAsync();
+                }
+                _logger.LogInformation("PlaygroundGrains BuildProject after dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+                using (var sr = proc.StandardOutput)
+                {
+                    ret = await sr.ReadToEndAsync();
+                }
+
+                if (proc.ExitCode != 0)
+                {
+                    _logger.LogError("Error executing process: " + errorMessage);
+                    return (false, "Error executing process: " + errorMessage);
+                }
+            }
+            catch (Exception e)
+            {
+                return (false, "Error starting process: " + e.Message);
+            }
+
+            return (true, ret);
         }
         catch (Exception e)
         {

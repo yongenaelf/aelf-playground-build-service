@@ -110,5 +110,71 @@ namespace PlaygroundService.Controllers
                 Message = message
             });
         }
+        
+        [HttpPost("test")]
+        public async Task<IActionResult> Test(IFormFile contractFiles)
+        {
+            _logger.LogInformation("Test  - Test started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            return await TestService(contractFiles);
+        }
+        
+        public async Task<IActionResult> TestService(IFormFile contractFiles)
+        {
+            _logger.LogInformation("PlaygroundController - Test method started for: "+ contractFiles.FileName + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) ;
+            var startTime = DateTime.Now;
+            
+            var buildDto = new BuildDto
+            {
+                ZipFile = await contractFiles.ToBytes(),
+                Filename = contractFiles.FileName
+            };
+            
+            var guid = Guid.NewGuid();
+            var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(guid.ToString());
+            var (success, message) = await codeGeneratorGrain.TestProject(buildDto);
+
+            if (success)
+            {
+                _logger.LogInformation("PlaygroundController - BuildProject method returned success: " + message  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                var pathToDll = message;
+                var fileName = Path.GetFileName(pathToDll);
+                _logger.LogInformation("PlaygroundController - Files return fileName:" + pathToDll);
+                if (!System.IO.File.Exists(pathToDll))
+                {
+                    _logger.LogError("PlaygroundController - BuildProject method returned error: file not exist " + message  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+                    {
+                        Success = success,
+                        Message = message
+                    });
+                }
+
+                var dllBytes = BytesExtension.Read(pathToDll);
+                if (dllBytes == null)
+                {
+                    _logger.LogError("PlaygroundController - BuildProject method returned error: dllBytes is null " + message  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+                    {
+                        Success = false,
+                        Message = "Error in dll."
+                    });
+                }
+                
+                var res = Content(Convert.ToBase64String(dllBytes));
+                
+                _logger.LogInformation("PlaygroundController - BuildProject method over: " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                var endTime = DateTime.Now;
+                
+                _logger.LogInformation("PlaygroundController - BuildProject method took: " + (endTime - startTime).TotalSeconds + " seconds");
+                return res;
+            }
+            
+            _logger.LogError("PlaygroundController - BuildProject method returned error: " + message);
+            return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+            {
+                Success = success,
+                Message = message
+            });
+        }
     }
 }
