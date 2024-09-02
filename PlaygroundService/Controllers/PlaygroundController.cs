@@ -1,13 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Orleans;
+using PlaygroundService.Dtos;
 using PlaygroundService.Grains;
+using PlaygroundService.Utilities;
 
 namespace PlaygroundService.Controllers
 {
@@ -51,112 +51,21 @@ namespace PlaygroundService.Controllers
             _logger.LogInformation("Build  - Build started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             return await BuildService(contractFiles);
         }
-        
-        public byte[] Read(string path)
-        {
-            try
-            {
-                byte[] code = System.IO.File.ReadAllBytes(path);
-                return code;
-            }
-            catch (Exception e)
-            {
-                return null;
-            }
-        }
 
         public async Task<IActionResult> BuildService(IFormFile contractFiles)
         {
             _logger.LogInformation("PlaygroundController - Build method started for: "+ contractFiles.FileName + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) ;
+            var startTime = DateTime.Now;
             
-            var tempPath = Path.GetTempPath();
-            var zipFile = Path.Combine(tempPath, contractFiles.FileName);
-            
-            _logger.LogInformation("PlaygroundController - Zip file path: " + zipFile);
-
-            await using var zipStream = new FileStream(zipFile, FileMode.Create);
-            await contractFiles.CopyToAsync(zipStream);
-            await zipStream.FlushAsync(); // Ensure all data is written to the file
-            
-            _logger.LogInformation("PlaygroundController - Zip file saved to disk"  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            
-            try
+            var buildDto = new BuildDto
             {
-                using var archive = ZipFile.OpenRead(zipFile);
-                // If we get here, the file is a valid zip file
-            }
-            catch (InvalidDataException)
-            {
-                _logger.LogError("PlaygroundController - The uploaded file is not a valid zip file"  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                
-                // The file is not a valid zip file
-                return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
-                {
-                    Success = false,
-                    Message = "PlaygroundController - The uploaded file is not a valid zip file"
-                });
-            }
-            
-            var extractPath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(contractFiles.FileName), Guid.NewGuid().ToString());
-
-            _logger.LogInformation("PlaygroundController - ExtractPath or destination directory where files are extracted is: "+extractPath  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            
-            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Read))
-            {
-                foreach (var entry in archive.Entries)
-                {
-                    var destinationPath = Path.GetFullPath(Path.Combine(extractPath, entry.FullName));
-
-                    // Ensure the destination file path is within the destination directory
-                    if (!destinationPath.StartsWith(extractPath, StringComparison.Ordinal))
-                    {
-                        _logger.LogError("PlaygroundController - Invalid entry in the zip file: " + entry.FullName  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-
-                        return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
-                        {
-                            Success = false,
-                            Message = $"PlaygroundController - Invalid entry in the zip file: {entry.FullName}"
-                        });
-                    }
-
-                    // Create the directory for the file if it does not exist
-                    var destinationDirectory = Path.GetDirectoryName(destinationPath);
-                    if (!Directory.Exists(destinationDirectory))
-                    {
-                        Directory.CreateDirectory(destinationDirectory);
-                    }
-                    // Extract the entry to the destination path
-                    try
-                    {
-                        entry.ExtractToFile(destinationPath, overwrite: true);
-                    }
-                    catch(UnauthorizedAccessException ex)
-                    {
-                        _logger.LogError("PlaygroundController - build ex1:  "+ex.ToString()  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError("PlaygroundController - build ex: : "+ex.ToString()  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    }
-                }
-            }
-            
-            _logger.LogInformation("PlaygroundController - Files extracted to disk"  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            
-            //validate if the extracted path contain .csProj file
-            var csprojFiles = Directory.GetFiles(extractPath, "*.csproj", SearchOption.AllDirectories);
-            if (csprojFiles.Length == 0)
-            {
-                return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
-                {
-                    Success = false,
-                    Message = "PlaygroundController - No .csproj file found in the uploaded zip file"
-                });
-            }
+                ZipFile = await contractFiles.ToBytes(),
+                Filename = contractFiles.FileName
+            };
             
             var guid = Guid.NewGuid();
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(guid.ToString());
-            var (success, message) = await codeGeneratorGrain.BuildProject(extractPath);
+            var (success, message) = await codeGeneratorGrain.BuildProject(buildDto);
 
             if (success)
             {
@@ -173,32 +82,33 @@ namespace PlaygroundService.Controllers
                         Message = message
                     });
                 }
-                var res = Content(Convert.ToBase64String(Read(pathToDll)));
+
+                var dllBytes = BytesExtension.Read(pathToDll);
+                if (dllBytes == null)
+                {
+                    _logger.LogError("PlaygroundController - BuildProject method returned error: dllBytes is null " + message  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+                    {
+                        Success = false,
+                        Message = "Error in dll."
+                    });
+                }
+                
+                var res = Content(Convert.ToBase64String(dllBytes));
                 
                 _logger.LogInformation("PlaygroundController - BuildProject method over: " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                await codeGeneratorGrain.DelData(zipFile, extractPath);
-
+                var endTime = DateTime.Now;
+                
+                _logger.LogInformation("PlaygroundController - BuildProject method took: " + (endTime - startTime).TotalSeconds + " seconds");
                 return res;
-                // return File(Read(pathToDll), "application/octet-stream");
-
-                // var memoryStream = new MemoryStream();
-                // using (var stream = new FileStream(pathToDll, FileMode.Open))
-                // {
-                //     await stream.CopyToAsync(memoryStream);
-                // }
-                // memoryStream.Position = 0;
-                // return File(memoryStream, "application/octet-stream");
-                // return PhysicalFile(pathToDll, "application/octet-stream", fileName);
             }
-            else
+            
+            _logger.LogError("PlaygroundController - BuildProject method returned error: " + message);
+            return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
             {
-                _logger.LogError("PlaygroundController - BuildProject method returned error: " + message);
-                return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
-                {
-                    Success = success,
-                    Message = message
-                });
-            }
+                Success = success,
+                Message = message
+            });
         }
     }
 }

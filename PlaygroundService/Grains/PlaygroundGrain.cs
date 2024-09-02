@@ -5,34 +5,69 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
-using Orleans.Concurrency;
+using PlaygroundService.Dtos;
+using PlaygroundService.Utilities;
 
 namespace PlaygroundService.Grains;
 public class PlaygroundGrain : Grain, IPlaygroundGrain
 {
     private readonly ILogger<PlaygroundGrain> _logger;
+    private string _workspacePath;
 
     public PlaygroundGrain(
         ILogger<PlaygroundGrain> logger)
     {
         _logger = logger;
     }
+    
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
+    {
+        await base.OnActivateAsync(cancellationToken);
+        CreateWorkspaceDirectory();
+    }
+    
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await base.OnDeactivateAsync(reason, cancellationToken);
+        DeleteWorkspaceDirectory();
+    }
 
     public async Task<List<string>> GetTemplates()
     {
         var templateCon = new List<string> { "aelf", "aelf-lottery", "aelf-nft-sale", "aelf-simple-dao"};
+        
+        //TODO: refactor to use AOP
+        DeactivateOnIdle();
+        
         return templateCon;
     }
-    
+
     public async Task <string> GenerateTemplate(string template, string templateName)
     {
-        var tempPath = Path.GetTempPath();
-        var templatePath = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(template), Guid.NewGuid().ToString());
-        var sourceFolder = templatePath + "/code";
-        var command = "dotnet new --output " + templatePath + "/code " + template + " -n " + templateName;
+        var zip = await GenerateTemplateZip(template, templateName);
+            
+        DeactivateOnIdle();
+
+        return zip;
+    }
+
+    public async Task<(bool, string)> BuildProject(BuildDto dto)
+    {
+        var (success, message) = await Build(dto);
+        
+        DeactivateOnIdle();
+        
+        return (success, message);
+    }
+    
+    private async Task <string> GenerateTemplateZip(string template, string templateName)
+    {
+        var sourceFolder = _workspacePath + "/code";
+        var command = "dotnet new --output " + _workspacePath + "/code " + template + " -n " + templateName;
         try
         {
             var startInfo = new ProcessStartInfo
@@ -54,11 +89,18 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             }
             _logger.LogInformation("PlayGroundGrain GenerateZip  dotnet new end command: " + command + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         
-            ZipFile.CreateFromDirectory(sourceFolder, templatePath + "/code.zip");
-            var zipFile = Convert.ToBase64String(Read(templatePath + "/code.zip"));
-            _logger.LogInformation("PlayGroundGrain GenerateZip  zip end templatePath: " + templatePath + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            // DeactivateOnIdle();
-            await DelData(templatePath + "/src.zip", templatePath);
+            ZipFile.CreateFromDirectory(sourceFolder, _workspacePath + "/code.zip");
+
+            var codeZip = BytesExtension.Read(_workspacePath + "/code.zip");
+            if (codeZip == null)
+            {
+                _logger.LogError("Error: code zip cannot be found. time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                return "";
+            }
+            
+            var zipFile = Convert.ToBase64String(codeZip);
+            _logger.LogInformation("PlayGroundGrain GenerateZip  zip end templatePath: " + _workspacePath + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            
             return zipFile;
         }
         catch (Exception ex)
@@ -67,63 +109,44 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             return "";
         }
     }
-    
-    public byte[] Read(string path)
+
+    private async Task<(bool, string)> Build(BuildDto dto)
     {
+        var zipBytes = dto.ZipFile;
+        
+        if (zipBytes == null)
+        {
+            return (false, "The uploaded file is not a valid zip file.");
+        }
+        if (string.IsNullOrEmpty(dto.Filename))
+        {
+            return (false, "The uploaded file does not have a filename.");
+        }
+        
         try
         {
-            byte[] code = File.ReadAllBytes(path);
-            return code;
+            zipBytes.ExtractTo(_workspacePath);
         }
         catch (Exception e)
         {
-            return null;
+            _logger.LogError($"PlaygroundController - Error extracting zip file - {e.Message}"  + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            return (false, "Error extracting zip file.");
         }
-    }
-    
-    
-    
-    public async Task <bool> DelData(string zipFile, string extractPath)
-    {
-        // Check if the fild exists
-        try
-        {
-            if (File.Exists(zipFile))
-            {
-                // Using the Process class to execute the rm command to delete files
-                ProcessStartInfo startInfo = new ProcessStartInfo("rm", zipFile);
-                Process.Start(startInfo);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("PlayGroundGrain DelData del zipFile fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
-        }
-        try
-        {
-            // Check if the folder exists
-            if (Directory.Exists(extractPath))
-            {
-                // Recursively delete folders and all their contents
-                Directory.Delete(extractPath, true);
-                return true;
-            }
-            else
-            {
-                _logger.LogInformation("PlayGroundGrain DelData del dllPath fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            }
-        }
-        catch (Exception ex)
-        {
-            // Handle possible exceptions, such as insufficient permissions, folders being occupied by other processes, etc
-            _logger.LogError("PlayGroundGrain DelData del dllPath fail time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ex.Message);
-        }
-        return false;
+        
+        return await Build(_workspacePath);
     }
 
-    public async Task<(bool, string)> BuildProject(string directory)
+    private void CreateWorkspaceDirectory()
     {
-        string projectDirectory = directory;
+        _workspacePath = Path.Combine(Path.GetTempPath(), this.GetGrainId().ToString());
+        if (!Directory.Exists(_workspacePath))
+        {
+            Directory.CreateDirectory(_workspacePath);
+        }
+    }
+
+    private async Task<(bool, string)> Build(string directory)
+    {
         try
         {
             _logger.LogInformation("PlayGroundGrain BuildProject begin time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
@@ -159,18 +182,13 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
             
             // before running the process dotnet build check if the directory has a .csproj file and .sln file
             var csprojFiles = files.Where(file => file.EndsWith(".csproj")).ToList();
-            var slnFiles = files.Where(file => file.EndsWith(".sln")).ToList();
             
             if (csprojFiles.Count == 0)
             {
                 return (false, "No .csproj file found in the directory");
             }
-            
-            // if (slnFiles.Count == 0)
-            // {
-            //     return (false, "No .sln file found in the directory");
-            // }
-            
+
+            var projectDirectory = "";
             try
             {
                 // Check if directory exists
@@ -203,16 +221,15 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
 
             // Run psi
             _logger.LogInformation("PlaygroundGrains BuildProject before dotnet build " + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            Process proc;
             try
             {
-                proc = Process.Start(psi);
+                var proc = Process.Start(psi);
                 if (proc == null)
                 {
                     return (false, "Process could not be started.");
                 }
 
-                proc.WaitForExit();
+                await proc.WaitForExitAsync();
 
                 string errorMessage;
                 using (var sr = proc.StandardError)
@@ -283,6 +300,11 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
 
     private void PrintDirectory(DirectoryInfo directoryInfo, string prefix, string indent, StringBuilder stringBuilder)
     {
+        if(directoryInfo.Parent == null)
+        {
+            return;
+        }
+        
         var isLast = directoryInfo.Parent.GetDirectories().Last().Equals(directoryInfo);
 
         stringBuilder.AppendLine($"{prefix}{(isLast ? "└── " : "├── ")}{directoryInfo.Name}");
@@ -291,6 +313,11 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
 
         foreach (var fileInfo in directoryInfo.GetFiles())
         {
+            if (fileInfo.Directory == null)
+            {
+                continue;
+            }
+
             isLast = fileInfo.Directory.GetFiles().Last().Equals(fileInfo);
             stringBuilder.AppendLine($"{newPrefix}{(isLast ? "└── " : "├── ")}{fileInfo.Name}");
         }
@@ -298,6 +325,14 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
         foreach (var subDirectoryInfo in directoryInfo.GetDirectories())
         {
             PrintDirectory(subDirectoryInfo, newPrefix, indent, stringBuilder);
+        }
+    }
+    
+    private void DeleteWorkspaceDirectory()
+    {
+        if (Directory.Exists(_workspacePath))
+        {
+            Directory.Delete(_workspacePath, true);
         }
     }
 }
