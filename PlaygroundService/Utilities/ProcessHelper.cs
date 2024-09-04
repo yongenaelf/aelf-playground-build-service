@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace PlaygroundService.Utilities;
 
@@ -43,27 +44,30 @@ public class ProcessHelper
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            EnvironmentVariables =
-        {
-            ["LANG"] = "en_US.UTF-8",
-            ["LC_ALL"] = "en_US.UTF-8"
-        }
+            EnvironmentVariables ={
+                                    ["LANG"] = "en_US.UTF-8",
+                                    ["LC_ALL"] = "en_US.UTF-8"
+                                }
         };
 
-        using var process = new Process
-        { StartInfo = startInfo };
+        using var process = new Process { StartInfo = startInfo };
+        var output = new StringBuilder();
+        var error = new StringBuilder();
+        process.OutputDataReceived += (sender, args) => output.AppendLine(args.Data);
+        process.ErrorDataReceived += (sender, args) => error.AppendLine(args.Data);
 
         process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var error = await process.StandardError.ReadToEndAsync();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
         await process.WaitForExitAsync();
 
+        var allOutput = output.ToString() + error.ToString(); // Combine stdout and stderr
         if (process.ExitCode != 0)
         {
-            throw new Exception(error);
+            return $"Process exited with code {process.ExitCode}. Details: {allOutput}";
         }
 
-        return output; 
+        return allOutput;
     }
 
 }
