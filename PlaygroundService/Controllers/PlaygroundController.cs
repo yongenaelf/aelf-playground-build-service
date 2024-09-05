@@ -52,20 +52,16 @@ namespace PlaygroundService.Controllers
             return await BuildService(contractFiles);
         }
 
-        public async Task<IActionResult> BuildService(IFormFile contractFiles)
+        private async Task<IActionResult> BuildService(IFormFile contractFiles)
         {
             _logger.LogInformation("PlaygroundController - Build method started for: "+ contractFiles.FileName + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) ;
             var startTime = DateTime.Now;
             
-            var buildDto = new BuildDto
-            {
-                ZipFile = await contractFiles.ToBytes(),
-                Filename = contractFiles.FileName
-            };
+            var zipFileDto = await GetZipFileDto(contractFiles);
             
             var guid = Guid.NewGuid();
             var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(guid.ToString());
-            var (success, message) = await codeGeneratorGrain.BuildProject(buildDto);
+            var (success, message) = await codeGeneratorGrain.BuildProject(zipFileDto);
 
             if (success)
             {
@@ -104,6 +100,46 @@ namespace PlaygroundService.Controllers
             }
             
             _logger.LogError("PlaygroundController - BuildProject method returned error: " + message);
+            return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
+            {
+                Success = success,
+                Message = message
+            });
+        }
+
+        private static async Task<ZipFileDto> GetZipFileDto(IFormFile contractFiles)
+        {
+            var zipFileDto = new ZipFileDto
+            {
+                ZipFile = await contractFiles.ToBytes(),
+                Filename = contractFiles.FileName
+            };
+            return zipFileDto;
+        }
+
+        [HttpPost("test")]
+        public async Task<IActionResult> Test(IFormFile contractFiles)
+        {
+            _logger.LogInformation("Test  - Test started time: "+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            return await TestService(contractFiles);
+        }
+        
+        private async Task<IActionResult> TestService(IFormFile contractFiles)
+        {
+            _logger.LogInformation("PlaygroundController - Test method started for: "+ contractFiles.FileName + " time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) ;
+            
+            var zipFileDto = await GetZipFileDto(contractFiles);
+            
+            var guid = Guid.NewGuid();
+            var codeGeneratorGrain = _client.GetGrain<IPlaygroundGrain>(guid.ToString());
+            var (success, message) = await codeGeneratorGrain.TestProject(zipFileDto);
+
+            if (success)
+            {
+                return Ok(message);
+            }
+            
+            _logger.LogError("PlaygroundController - TestProject method returned error: " + message);
             return BadRequest(new PlaygroundSchema.PlaygroundContractGenerateResponse
             {
                 Success = success,

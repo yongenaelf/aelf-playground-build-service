@@ -3,7 +3,7 @@ using Orleans;
 namespace PlaygroundService.Dtos;
 
 [GenerateSerializer]
-public class BuildDto
+public class ZipFileDto
 {
     [Id(0)]
     public byte[]? ZipFile { get; set; }
