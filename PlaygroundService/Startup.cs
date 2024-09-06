@@ -23,9 +23,10 @@ public class Startup
         {
             throw new Exception("Configuration is null. Ensure it is initialized correctly.");
         }
-
-        var mongoClient = new MongoClient(Configuration["MongoDbSettings.ConnectionString"]); // DB String
-        var mongoDatabase = mongoClient.GetDatabase(Configuration["MongoDbSettings.DatabaseName"]); // TabelName
+        Console.WriteLine(Configuration["MongoDbSettings:ConnectionString"]);
+        Console.WriteLine(Configuration["MongoDbSettings:DatabaseName"]);
+        var mongoClient = new MongoClient(Configuration["MongoDbSettings:ConnectionString"]); // DB String
+        var mongoDatabase = mongoClient.GetDatabase(Configuration["MongoDbSettings:DatabaseName"]); // TabelName
         var gridFSBucket = new GridFSBucket(mongoDatabase);
 
         services.AddSingleton<IGridFSBucket>(gridFSBucket);
