@@ -76,7 +76,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
     private async Task <string> GenerateTemplateZip(string template, string templateName)
     {
         var sourceFolder = _workspacePath + "/code";
-        var command = "dotnet new --output " + _workspacePath + "/code " + template + " -n " + templateName;
+        var command = "dotnet new" + template + " --output " + _workspacePath + "/code -n " + templateName;
         try
         {
             var startInfo = new ProcessStartInfo
