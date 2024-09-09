@@ -10,6 +10,7 @@ using Orleans.Configuration;
 using Orleans.Hosting;
 using Orleans.Serialization;
 using PlaygroundService.Grains;
+using Custom;
 
 public class Program
 {
@@ -17,6 +18,9 @@ public class Program
     {
         try
         {
+            // Use the custom configuration manager
+            var maxFileSizeMB = int.Parse(CustomConfigurationManager.AppSetting["ContractSetting:MaxFileSizeMB"]);
+            int maxFileSize = maxFileSizeMB * 1024 * 1024;
             var siloPort = 11111;
             var gatewayPort = 30000;
             var host = new HostBuilder()
@@ -46,6 +50,10 @@ public class Program
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
+                    webBuilder.ConfigureKestrel(options =>
+                    {
+                        options.Limits.MaxRequestBodySize = maxFileSize;
+                    });
                 })
                 .ConfigureLogging(logging => logging.AddConsole(options =>
                 {

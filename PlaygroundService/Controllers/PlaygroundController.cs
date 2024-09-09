@@ -356,8 +356,14 @@ namespace PlaygroundService.Controllers
 
                 if (!string.IsNullOrEmpty(error))
                 {
-                    // Log the error or handle it
-                    throw new InvalidOperationException($"Virus scan failed: {error}");
+                    if (error.Contains("LibClamAV Warning: The virus database is older than 7 days"))
+                    {
+                        Console.WriteLine("ClamAV database is outdated. Please update.");
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Virus scan failed: {error}");
+                    }
                 }
 
                 // Assuming ClamAV returns 0 if no virus is found
