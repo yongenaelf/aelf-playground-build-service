@@ -17,12 +17,6 @@ public class Program
     {
         try
         {
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-            var configuration = builder.Build();
-            Console.WriteLine(configuration["MongoDbSettings:ConnectionString"]);
-            Console.WriteLine(configuration["MongoDbSettings:DatabaseName"]);
             var siloPort = 11111;
             var gatewayPort = 30000;
             var host = new HostBuilder()
@@ -31,7 +25,7 @@ public class Program
                     .ConfigureEndpoints(siloPort, gatewayPort)
                     .ConfigureServices(services =>
                     {
-                        //services.Configure<ContractSetting>(configuration.GetSection("ContractSetting"));
+
                         services.AddSerializer(serializerBuilder =>
                         {
                             serializerBuilder.AddNewtonsoftJsonSerializer(
@@ -61,7 +55,6 @@ public class Program
                 .Build();
 
             await host.StartAsync();
-
             await Task.Delay(-1);
         }
         catch (Exception ex)
