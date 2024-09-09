@@ -1,46 +1,87 @@
 {
-	"info": {
-		"_postman_id": "cc461233-ee7b-4433-bbfa-d0eff44e892a",
-		"name": "Aelf Playground",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "32324385"
-	},
-	"item": [
-		{
-			"name": "build",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "contractFiles",
-							"type": "file",
-							"src": "/Users/kanth/Documents/misc/aelf/playground/playground-service/HelloWorldContract.zip"
-						},
-						{
-							"key": "",
-							"type": "file",
-							"src": [],
-							"disabled": true
-						}
-					]
-				},
-				"url": {
-					"raw": "http://localhost:7020/playground/build",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "7020",
-					"path": [
-						"playground",
-						"build"
-					]
-				}
-			},
-			"response": []
-		}
-	]
+  "info": {
+    "_postman_id": "cc461233-ee7b-4433-bbfa-d0eff44e892a",
+    "name": "Aelf Playground",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "32324385"
+  },
+  "item": [
+    {
+      "name": "build",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "contractFiles",
+              "type": "file",
+              "src": "/Users/kanth/Documents/misc/aelf/playground/playground-service/HelloWorldContract.zip"
+            },
+            {
+              "key": "",
+              "type": "file",
+              "src": [],
+              "disabled": true
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:7020/playground/build",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "7020",
+          "path": ["playground", "build"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "share - create",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "shareFile",
+              "type": "file",
+              "src": "/path/to/your/file/ShareFile.zip"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:7020/playground/share/create",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "7020",
+          "path": ["playground", "share", "create"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "share - get by id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:7020/playground/share/get/{id}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "7020",
+          "path": ["playground", "share", "get", "{id}"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
 }
