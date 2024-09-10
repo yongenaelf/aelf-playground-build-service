@@ -23,7 +23,7 @@ namespace PlaygroundService.Controllers
         private readonly IClusterClient _client;
         private readonly ILogger<PlaygroundController> _logger;
         private readonly IGridFSBucket _gridFS;
-        private readonly long _maxFileSizeInBytes = 100 * 1024 * 1024;
+        private readonly long _maxFileSizeInBytes = 50 * 1024 * 1024;
         public PlaygroundController(IClusterClient client, ILogger<PlaygroundController> logger, IGridFSBucket gridFS)
         {
             _client = client;
@@ -335,7 +335,7 @@ namespace PlaygroundService.Controllers
         {
             ProcessStartInfo psi = new ProcessStartInfo
             {
-                FileName = CustomConfigurationManager.AppSetting["ContractSetting:ClamScanPath"],  // Adjust this to the actual path
+                FileName = CustomConfigurationManager.AppSetting["ClamAV:ClamScanPath"],  // Adjust this to the actual path
                 Arguments = $"--no-summary {filePath}",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

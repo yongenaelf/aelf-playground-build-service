@@ -19,7 +19,7 @@ public class Program
         try
         {
             // Use the custom configuration manager
-            var maxFileSizeMB = int.Parse(CustomConfigurationManager.AppSetting["ContractSetting:MaxFileSizeMB"]);
+            var maxFileSizeMB = int.Parse(CustomConfigurationManager.AppSetting["ClamAV:MaxFileSizeMB"]);
             int maxFileSize = maxFileSizeMB * 1024 * 1024;
             var siloPort = 11111;
             var gatewayPort = 30000;
