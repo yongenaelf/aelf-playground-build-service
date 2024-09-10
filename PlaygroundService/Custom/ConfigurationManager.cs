@@ -4,10 +4,10 @@ using Microsoft.Extensions.Configuration;
 
 namespace Custom
 {
-    static class ConfigurationManager
+    static class CustomConfigurationManager
     {
         public static IConfiguration AppSetting { get; }
-        static ConfigurationManager()
+        static CustomConfigurationManager()
         {
             AppSetting = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())

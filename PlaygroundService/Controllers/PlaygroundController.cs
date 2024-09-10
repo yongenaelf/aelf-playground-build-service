@@ -13,6 +13,7 @@ using MongoDB.Bson;
 using System.Diagnostics;
 using System.Linq;
 using System.Collections.Generic;
+using Custom;
 namespace PlaygroundService.Controllers
 {
     [ApiController]
@@ -22,7 +23,7 @@ namespace PlaygroundService.Controllers
         private readonly IClusterClient _client;
         private readonly ILogger<PlaygroundController> _logger;
         private readonly IGridFSBucket _gridFS;
-        private readonly long _maxFileSizeInBytes = 100 * 1024 * 1024;
+        private readonly long _maxFileSizeInBytes = 50 * 1024 * 1024;
         public PlaygroundController(IClusterClient client, ILogger<PlaygroundController> logger, IGridFSBucket gridFS)
         {
             _client = client;
@@ -334,7 +335,7 @@ namespace PlaygroundService.Controllers
         {
             ProcessStartInfo psi = new ProcessStartInfo
             {
-                FileName = "/opt/homebrew/bin/clamscan",  // Adjust this to the actual path
+                FileName = CustomConfigurationManager.AppSetting["ClamAV:ClamScanPath"],  // Adjust this to the actual path
                 Arguments = $"--no-summary {filePath}",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -356,8 +357,14 @@ namespace PlaygroundService.Controllers
 
                 if (!string.IsNullOrEmpty(error))
                 {
-                    // Log the error or handle it
-                    throw new InvalidOperationException($"Virus scan failed: {error}");
+                    if (error.Contains("LibClamAV Warning: The virus database is older than 7 days"))
+                    {
+                        Console.WriteLine("ClamAV database is outdated. Please update.");
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Virus scan failed: {error}");
+                    }
                 }
 
                 // Assuming ClamAV returns 0 if no virus is found

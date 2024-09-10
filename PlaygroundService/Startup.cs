@@ -13,8 +13,8 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        string connectionString = ConfigurationManager.AppSetting["MongoDbSettings:ConnectionString"];
-        string databaseName = ConfigurationManager.AppSetting["MongoDbSettings:DatabaseName"];
+        string connectionString = CustomConfigurationManager.AppSetting["MongoDbSettings:ConnectionString"];
+        string databaseName = CustomConfigurationManager.AppSetting["MongoDbSettings:DatabaseName"];
 
         var mongoClient = new MongoClient(connectionString);
         var mongoDatabase = mongoClient.GetDatabase(databaseName);
