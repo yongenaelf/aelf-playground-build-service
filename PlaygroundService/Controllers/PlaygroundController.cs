@@ -13,6 +13,7 @@ using MongoDB.Bson;
 using System.Diagnostics;
 using System.Linq;
 using System.Collections.Generic;
+using Custom;
 namespace PlaygroundService.Controllers
 {
     [ApiController]
@@ -334,7 +335,7 @@ namespace PlaygroundService.Controllers
         {
             ProcessStartInfo psi = new ProcessStartInfo
             {
-                FileName = "/opt/homebrew/bin/clamscan",  // Adjust this to the actual path
+                FileName = CustomConfigurationManager.AppSetting["ContractSetting:ClamScanPath"],  // Adjust this to the actual path
                 Arguments = $"--no-summary {filePath}",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
