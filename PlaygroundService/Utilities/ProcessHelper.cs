@@ -24,8 +24,11 @@ public class ProcessHelper
 
         try
         {
-            var result = await RunProcess("dotnet", command, projectDirectory);
-            return (true, result);
+            // Run the process and capture the output
+            var (exitCode, result) = await RunProcess("dotnet", command, projectDirectory);
+
+            // Return true if exit code is 0, otherwise false with the captured output
+            return (exitCode == 0, result);
         }
         catch (Exception e)
         {
@@ -33,7 +36,8 @@ public class ProcessHelper
         }
     }
 
-    private static async Task<string> RunProcess(string fileName, string arguments, string workingDirectory = null)
+
+    private static async Task<(int, string)> RunProcess(string fileName, string arguments, string workingDirectory = null)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -62,12 +66,7 @@ public class ProcessHelper
         await process.WaitForExitAsync();
 
         var allOutput = output.ToString() + error.ToString(); // Combine stdout and stderr
-        if (process.ExitCode != 0)
-        {
-            return $"Process exited with code {process.ExitCode}. Details: {allOutput}";
-        }
-
-        return allOutput;
+        return (process.ExitCode, allOutput); // Return exit code and output
     }
 
 }
