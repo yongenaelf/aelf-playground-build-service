@@ -26,8 +26,8 @@ RUN dotnet new --install AElf.ContractTemplates
 # Create global.json to force the use of .NET 6 SDK
 RUN dotnet new globaljson --sdk-version $$DOTNET_6 --force
 
-# Entry point to run the service using .NET 7
-ENTRYPOINT ["/usr/share/dotnet/dotnet", "PlaygroundService.dll"]
-
 # Expose port 7020
 EXPOSE 7020
+
+# Minimal change to run freshclam before starting the service
+ENTRYPOINT ["sh", "-c", "freshclam && /usr/share/dotnet/dotnet PlaygroundService.dll"]
