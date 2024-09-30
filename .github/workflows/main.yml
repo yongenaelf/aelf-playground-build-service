@@ -3,11 +3,14 @@ name: Create and publish a Docker image
 on:
   workflow_dispatch:
   push:
-    branches: ["master"]
+    branches: [master]
+    tags: ['*']
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT: ${{ github.ref_type == 'tag' && 'production' || 'development' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -58,7 +61,7 @@ jobs:
               workflow_id: 'playground-deploy.yaml',
               ref: 'main',
               inputs: {
-                env: 'development',
+                env: '${{ env.ENVIRONMENT }}',
                 appName: 'playground-service',
                 commit_sha: 'sha-${{ steps.vars.outputs.short_sha }}',
               }
