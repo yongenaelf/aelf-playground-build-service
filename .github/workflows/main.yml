@@ -47,6 +47,8 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
+    needs: docker
+    if: ${{ !(failure() || cancelled()) }}
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT: ${{ github.ref_type == 'tag' && 'production' || 'development' }}
