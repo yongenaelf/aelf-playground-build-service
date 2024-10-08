@@ -8,12 +8,6 @@ WORKDIR /app
 # Install .NET 7 Runtime alongside .NET 6 SDK
 COPY --from=mcr.microsoft.com/dotnet/sdk:7.0 /usr/share/dotnet/shared /usr/share/dotnet/shared
 
-# Install ClamAV
-RUN apt-get update && apt-get install -y clamav clamav-daemon
-
-# Ensure ClamAV has the latest definitions
-RUN freshclam
-
 # Copy the project files
 COPY out/ /app/
 
@@ -30,4 +24,4 @@ RUN dotnet new globaljson --sdk-version $$DOTNET_6 --force
 EXPOSE 7020
 
 # Minimal change to run freshclam before starting the service
-ENTRYPOINT ["sh", "-c", "freshclam && /usr/share/dotnet/dotnet PlaygroundService.dll"]
+ENTRYPOINT ["/usr/share/dotnet/dotnet", "PlaygroundService.dll"]

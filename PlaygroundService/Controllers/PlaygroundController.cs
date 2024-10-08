@@ -14,6 +14,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Collections.Generic;
 using Custom;
+using ClamAV.Net.Client;
+using ClamAV.Net.Client.Results;
 namespace PlaygroundService.Controllers
 {
     [ApiController]
@@ -178,7 +180,7 @@ namespace PlaygroundService.Controllers
             }
 
             // Run the file through a virus scanner (ClamAV in this example)
-            var isSafe = ScanFileForViruses(tempFilePath);
+            var isSafe = await ScanFileForVirusesAsync(tempFilePath);
 
             if (!isSafe)
             {
@@ -331,44 +333,30 @@ namespace PlaygroundService.Controllers
             return File(stream, "application/zip", stream.FileInfo.Filename);
         }
 
-        private static bool ScanFileForViruses(string filePath)
+        private static async Task<bool> ScanFileForVirusesAsync(string filePath)
         {
-            ProcessStartInfo psi = new ProcessStartInfo
+            string connectionString = CustomConfigurationManager.AppSetting["ClamAV:ConnectionString"] ?? throw new ArgumentNullException(nameof(connectionString), "ClamAV connection string cannot be null or empty.");
+
+            // Create a new ClamAV client
+            IClamAvClient clamAvClient = ClamAvClient.Create(new Uri(connectionString));
+
+            // Send PING command to ClamAV
+            await clamAvClient.PingAsync().ConfigureAwait(false);
+
+            // Get ClamAV engine and virus database version
+            VersionResult result = await clamAvClient.GetVersionAsync().ConfigureAwait(false);
+
+            Console.WriteLine(
+                $"ClamAV version - {result.ProgramVersion} , virus database version {result.VirusDbVersion}");
+
+            await using (MemoryStream memoryStream = new MemoryStream(await System.IO.File.ReadAllBytesAsync(filePath)))
             {
-                FileName = CustomConfigurationManager.AppSetting["ClamAV:ClamScanPath"],  // Adjust this to the actual path
-                Arguments = $"--no-summary {filePath}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+                //Send a stream to ClamAV scan
+                ScanResult res = await clamAvClient.ScanDataAsync(memoryStream).ConfigureAwait(false);
 
-            Process? process = Process.Start(psi);
-            if (process == null)
-            {
-                throw new InvalidOperationException("Failed to start the virus scanning process.");
-            }
+                Console.WriteLine($"Scan result : Infected - {res.Infected} , Virus name {res.VirusName}");
 
-            using (process)
-            {
-                string output = process.StandardOutput?.ReadToEnd() ?? string.Empty;
-                string error = process.StandardError?.ReadToEnd() ?? string.Empty;
-                process.WaitForExit();
-
-                if (!string.IsNullOrEmpty(error))
-                {
-                    if (error.Contains("LibClamAV Warning: The virus database is older than 7 days"))
-                    {
-                        Console.WriteLine("ClamAV database is outdated. Please update.");
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException($"Virus scan failed: {error}");
-                    }
-                }
-
-                // Assuming ClamAV returns 0 if no virus is found
-                return process.ExitCode == 0;
+                return !res.Infected;
             }
         }
     }
