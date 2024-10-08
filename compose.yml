@@ -1,0 +1,17 @@
+services:
+  pgs:
+    image: pgs
+    ports:
+      - "7020:7020"
+  clamav:
+    image: clamav/clamav:stable_base
+    ports:
+      - "3310:3310"
+    volumes:
+      - ./temp/clamav:/var/lib/clamav
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./temp/db:/data/db
