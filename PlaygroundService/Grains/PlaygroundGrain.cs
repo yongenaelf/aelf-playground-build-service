@@ -9,10 +9,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
+using Orleans.Concurrency;
 using PlaygroundService.Dtos;
 using PlaygroundService.Utilities;
 
 namespace PlaygroundService.Grains;
+
+[StatelessWorker(10)] // max 10 activations per silo
 public class PlaygroundGrain : Grain, IPlaygroundGrain
 {
     private readonly ILogger<PlaygroundGrain> _logger;
@@ -94,7 +97,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
                 process.Start(); // start process
                 // If necessary,can read the output of the process
                 // string output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit(); // Waiting for process to exit
+                await process.WaitForExitAsync(); // Waiting for process to exit
             }
             _logger.LogInformation("PlayGroundGrain GenerateZip  dotnet new end command: " + command + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         
