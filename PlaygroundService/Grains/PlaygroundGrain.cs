@@ -9,10 +9,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
+using Orleans.Concurrency;
 using PlaygroundService.Dtos;
 using PlaygroundService.Utilities;
 
 namespace PlaygroundService.Grains;
+
+[StatelessWorker(10)] // max 10 activations per silo
 public class PlaygroundGrain : Grain, IPlaygroundGrain
 {
     private readonly ILogger<PlaygroundGrain> _logger;
