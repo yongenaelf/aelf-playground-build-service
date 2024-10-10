@@ -97,7 +97,7 @@ public class PlaygroundGrain : Grain, IPlaygroundGrain
                 process.Start(); // start process
                 // If necessary,can read the output of the process
                 // string output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit(); // Waiting for process to exit
+                await process.WaitForExitAsync(); // Waiting for process to exit
             }
             _logger.LogInformation("PlayGroundGrain GenerateZip  dotnet new end command: " + command + " time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         
