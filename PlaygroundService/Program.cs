@@ -28,7 +28,7 @@ public class Program
                     // .UseLocalhostClustering()
                     .UseZooKeeperClustering(options =>
                     {
-                        options.ConnectionString = "localhost:2181"; // Replace with your ZooKeeper connection string
+                        options.ConnectionString = CustomConfigurationManager.AppSetting["Zookeeper:ConnectionString"];
                     })
                     .ConfigureEndpoints(siloPort, gatewayPort)
                     .ConfigureServices(services =>
