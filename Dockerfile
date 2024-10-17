@@ -5,8 +5,9 @@ FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_6} AS base-env
 # Set the working directory
 WORKDIR /app
 
-# Install .NET 7 Runtime alongside .NET 6 SDK
+# Install .NET 7 Runtime and .NET 8 SDK alongside .NET 6 SDK
 COPY --from=mcr.microsoft.com/dotnet/sdk:7.0 /usr/share/dotnet/shared /usr/share/dotnet/shared
+COPY --from=mcr.microsoft.com/dotnet/sdk:8.0 /usr/share/dotnet /usr/share/dotnet
 
 # Copy the project files
 COPY out/ /app/
