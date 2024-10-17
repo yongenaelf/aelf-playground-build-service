@@ -3,6 +3,8 @@
         <AssemblyName>PlaygroundService</AssemblyName>
         <TargetFramework>net7.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <ServerGarbageCollection>true</ServerGarbageCollection>
+        <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="ClamAV.Net" Version="0.1.166" />
