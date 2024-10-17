@@ -25,7 +25,11 @@ public class Program
             var gatewayPort = 30000;
             var host = new HostBuilder()
                 .UseOrleans((ctx, siloBuilder) => siloBuilder
-                    .UseLocalhostClustering()
+                    // .UseLocalhostClustering()
+                    .UseZooKeeperClustering(options =>
+                    {
+                        options.ConnectionString = "localhost:2181"; // Replace with your ZooKeeper connection string
+                    })
                     .ConfigureEndpoints(siloPort, gatewayPort)
                     .ConfigureServices(services =>
                     {

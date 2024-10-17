@@ -1,8 +1,6 @@
+include:
+  - compose-zookeeper.yml
 services:
-  pgs:
-    image: pgs
-    ports:
-      - "7020:7020"
   clamav:
     image: clamav/clamav:stable_base
     ports:
