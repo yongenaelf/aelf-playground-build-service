@@ -9,5 +9,5 @@ config:
 scenarios:
   - flow:
     - post:
-        url: "/api/build"
+        url: "/api/test"
         json: "{{ requestBody }}"
