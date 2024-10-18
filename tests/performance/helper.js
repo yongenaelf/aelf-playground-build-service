@@ -1,4 +1,4 @@
-var JSONFile= require('fs').readFileSync("./requestBody.json");
+var JSONFile= require('fs').readFileSync("./tests/performance/requestBody.json");
 
 exports.setJSONBody = (req, context, events, next) => {
     const requestJSON= JSON.parse(JSONFile);
