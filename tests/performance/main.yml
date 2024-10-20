@@ -8,6 +8,8 @@ config:
   #     arrivalRate: 10 # Increase to 10 requests per second
 scenarios:
   - flow:
-    - post:
-        url: "/api/test"
-        json: "{{ requestBody }}"
+      - post:
+          url: "/playground/build"
+          formData:
+            file:
+              fromFile: "./Archive.zip"
