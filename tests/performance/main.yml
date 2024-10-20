@@ -1,5 +1,7 @@
 config:
   processor: "./helper.js"
+  http:
+    timeout: 60000
   target: "https://playground-next.test.aelf.dev"
   # phases:
   #   - duration: 60
