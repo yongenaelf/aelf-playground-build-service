@@ -11,7 +11,7 @@ config:
 scenarios:
   - flow:
       - post:
-          url: "/playground/build"
+          url: "/playground/test"
           formData:
             contractFiles:
               fromFile: "./Archive.zip"
