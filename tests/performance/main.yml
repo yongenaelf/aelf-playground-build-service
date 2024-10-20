@@ -3,11 +3,9 @@ config:
   http:
     timeout: 60000
   target: "https://playground-next.test.aelf.dev"
-  # phases:
-  #   - duration: 60
-  #     arrivalRate: 5 # Start with 5 requests per second
-  #   - duration: 120
-  #     arrivalRate: 10 # Increase to 10 requests per second
+  phases:
+    - duration: 10
+      arrivalRate: 5 # Start with 5 requests per second
 scenarios:
   - flow:
       - post:
