@@ -11,5 +11,5 @@ scenarios:
       - post:
           url: "/playground/build"
           formData:
-            file:
+            contractFiles:
               fromFile: "./Archive.zip"
